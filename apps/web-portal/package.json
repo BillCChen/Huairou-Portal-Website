@@ -1,0 +1,14 @@
+{
+  "name": "web-portal",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev --port 3100",
+    "build": "nuxt build",
+    "preview": "nuxt preview --port 3100",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "nuxt": "^4.0.0"
+  }
+}

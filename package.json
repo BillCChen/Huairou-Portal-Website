@@ -1,0 +1,15 @@
+{
+  "name": "portal-website",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "dev:web": "pnpm --dir apps/web-portal dev",
+    "dev:admin": "pnpm --dir apps/admin-console dev",
+    "dev:api": "cd apps/api-server && uvicorn app.main:app --reload --port 8100",
+    "build:web": "pnpm --dir apps/web-portal build",
+    "build:admin": "pnpm --dir apps/admin-console build",
+    "check:admin": "pnpm --dir apps/admin-console typecheck",
+    "check:web": "pnpm --dir apps/web-portal nuxi typecheck"
+  }
+}

@@ -1,0 +1,67 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: portal
+      POSTGRES_USER: portal
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U portal -d portal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/api.Dockerfile
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://portal:${POSTGRES_PASSWORD}@postgres:5432/portal
+      SECRET_KEY: ${PORTAL_SECRET_KEY}
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: ${PORTAL_ADMIN_PASSWORD}
+      SMS_TEST_CODE: ${PORTAL_SMS_TEST_CODE}
+      CORS_ORIGINS: http://localhost:3100,http://localhost:5174
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8100:8000"
+    volumes:
+      - portal_data:/app/data
+
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/web.Dockerfile
+    environment:
+      NUXT_PUBLIC_API_BASE: http://localhost:8100/api/v1
+    depends_on:
+      - api
+    ports:
+      - "3100:3000"
+      - "3443:443"
+
+  admin:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/admin.Dockerfile
+    environment:
+      VITE_API_BASE_URL: http://localhost:8100/api/v1
+    depends_on:
+      - api
+    ports:
+      - "5174:80"
+      - "8443:443"
+
+volumes:
+  postgres_data:
+  portal_data:
