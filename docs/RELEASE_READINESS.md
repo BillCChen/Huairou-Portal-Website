@@ -99,3 +99,24 @@ P0-3b corrected validation-entry behavior without changing business source code.
 | `pnpm check:web` | FAIL | Root command form is fixed. Current failure is `Cannot find matching tsconfig.json` for `apps/web-portal`, which requires a later validation/config decision. |
 | Docker compose config | PASS | `scripts/check_docker_compose_config.sh` uses `deploy/docker/.env.example` for config validation. Compose `.env` references are optional, so config validation no longer requires a real `.env` file. |
 | Minimal acceptance | Pending rerun after commit | `scripts/portal_min_acceptance.sh` now includes Docker Compose config validation and still requires a clean working tree. |
+
+## 8. P0-3c Web Typecheck Configuration Result
+
+P0-3c added `apps/web-portal/tsconfig.json` with the minimal Nuxt extension:
+
+```json
+{
+  "extends": "./.nuxt/tsconfig.json"
+}
+```
+
+Current status:
+
+| Check | Status | Notes |
+|---|---|---|
+| `apps/web-portal/tsconfig.json` | Added | Minimal config only; no path aliases or suppressive compiler options were added. |
+| `pnpm check:web` | FAIL | The command now enters real TypeScript checking. Remaining failures are `process` type availability and page error object typing. |
+| `pnpm build:web` | PASS | Production build remains valid. |
+| `portal_min_acceptance.sh` | PASS after clean commit | The script requires a clean tree and should be run after committing intended config/doc changes. |
+
+Next recommended follow-up: `P0-3d Web Typecheck Error Triage`. Do not mark `pnpm check:web` as a passing gate until those TypeScript findings are resolved or explicitly scoped.

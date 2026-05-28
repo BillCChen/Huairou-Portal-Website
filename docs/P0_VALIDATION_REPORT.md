@@ -92,3 +92,33 @@ P0-3b targeted two validation-entry failures from the first real validation run:
 | Docker compose config | FAIL | PASS | `deploy/docker/docker-compose.yml` now marks `.env` entries as optional and `scripts/check_docker_compose_config.sh` validates config with `--env-file deploy/docker/.env.example`, without creating or committing a real `.env` file. |
 
 No business source code was modified.
+
+## 9. P0-3c Web Typecheck Configuration Result
+
+P0-3c added the minimal Nuxt web `tsconfig.json`:
+
+```json
+{
+  "extends": "./.nuxt/tsconfig.json"
+}
+```
+
+Result:
+
+| Check | Before | After | Status |
+|---|---|---|---|
+| `nuxi prepare` | Not isolated | PASS | Nuxt generated `.nuxt/tsconfig.json` successfully |
+| `pnpm check:web` | FAIL: missing matching `tsconfig.json` | FAIL: real TypeScript errors exposed | Configuration entrypoint improved; business/type errors remain |
+| `pnpm build:web` | PASS | PASS | Build remains valid |
+| `portal_min_acceptance.sh` | PASS | PASS after commit | Pre-commit run failed as designed because the worktree contained the intended untracked `apps/web-portal/tsconfig.json`; it should be run from a clean tree |
+
+Current `pnpm check:web` errors are now real type-checking findings, not the previous missing-tsconfig entrypoint failure. Known error categories:
+
+- `nuxt.config.ts`: `process` type is missing.
+- Several pages access `message` / `detail` on values inferred as `{}`:
+  - `pages/cases/index.vue`
+  - `pages/index.vue`
+  - `pages/institutes/index.vue`
+  - `pages/news/index.vue`
+
+No page, component, composable, API, database model, or business behavior was modified in P0-3c.
