@@ -47,6 +47,7 @@
 - P1-D 已实现用户生命周期闭环基础：审核通过/驳回、禁用/启用、机构用户创建、角色分配、后台 UI 和 user lifecycle smoke。
 - P1-E 已实现 V1 内容 CMS 验收闭环：首页聚合、新闻、案例、关于我们、领导团队、Banner、分类/标签、站点设置和 V1 content smoke。
 - P1-F 已新增 V1 总验收入口、auth/permission smoke、V1 验收清单和验收报告。
+- P1-G 已完成合并就绪审计：V1 总验收、route map 稳定性、forbidden artifact scan、basic secret scan、merge-tree 冲突检查和 18200 端口残留检查均通过；本阶段不 merge、不 push。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
 
@@ -80,6 +81,22 @@ PORTAL_BACKEND_PYTHON=python3.11 ./scripts/run_v1_acceptance.sh
 - P0-2 只建立最低限度的仓库卫生和 API 路由可见性检查。
 
 P1-F 的 `scripts/run_v1_acceptance.sh` 是 V1 合同验收汇总入口，但仍不替代真实性能压测、外部安全扫描、真实 SMTP full-link UAT、Kubernetes 验收或 V2 业务验收。
+
+## 5a. P1-G Merge Readiness Result
+
+P1-G final readiness status:
+
+| Check | Status | Notes |
+|---|---|---|
+| P1 branch scope audit | PASS | P1 branch contains P1-A through P1-F commits and remains scoped to V1 contract closure. |
+| V1 acceptance runner | PASS | `PORTAL_BACKEND_PYTHON=python3.11 ./scripts/run_v1_acceptance.sh`. |
+| Route map stability | PASS | Generated API route map remained stable at 68 routes. |
+| Forbidden artifact scan | PASS | No tracked runtime artifacts or build outputs were detected. |
+| Basic secret scan | PASS | No tracked secret-like value was reported. |
+| Merge-tree check | PASS | `main` is an ancestor of the P1 branch and no conflict marker was reported. |
+| Port cleanup | PASS | No listener remained on port `18200`. |
+
+P1-G readiness does not mean production release readiness. Real SMTP full-link UAT, production performance testing, external security scanning, Kubernetes validation, public file delivery hardening, formal migrations, and V2 business systems remain separate later tracks.
 
 ## 6. P0-3 First Validation Run
 

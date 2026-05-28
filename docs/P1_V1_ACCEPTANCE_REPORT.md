@@ -93,3 +93,19 @@ The runner covers:
 - Password reset tokens are stored as hashes by the P1-B backend and are not printed by smoke scripts.
 - Smoke scripts use local demo credentials only inside isolated runtime requests and do not print raw passwords.
 - SMS verification login is not counted as V1 acceptance evidence.
+
+## 9. P1-G Merge Readiness Validation
+
+P1-G reran the complete V1 acceptance chain and merge-readiness checks before RC tagging.
+
+| Check | Result | Evidence |
+|---|---|---|
+| V1 acceptance runner | PASS | `PORTAL_BACKEND_PYTHON=python3.11 ./scripts/run_v1_acceptance.sh` |
+| Route map stability | PASS | `python3 scripts/extract_api_routes.py` regenerated 68 routes without a worktree diff. |
+| Forbidden artifact scan | PASS | `./scripts/check_forbidden_artifacts.sh` |
+| Basic secret scan | PASS | `./scripts/check_secrets_basic.sh` |
+| Whitespace diff check | PASS | `git diff --check` |
+| Merge-tree conflict check | PASS | `main` is an ancestor of the P1 branch and no merge-tree conflict marker was reported. |
+| Runtime cleanup | PASS | No listener remained on port `18200`. |
+
+P1-G does not merge to `main`, does not push, does not claim real SMTP full-link UAT completion, and does not implement V2 business systems.
