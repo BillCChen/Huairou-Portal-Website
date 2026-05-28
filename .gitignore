@@ -1,6 +1,8 @@
 .DS_Store
 .env
 .env.*
+!.env.example
+!**/.env.example
 .venv/
 __pycache__/
 *.pyc
@@ -11,4 +13,35 @@ dist/
 coverage/
 data/
 uploads/
-pnpm-lock.yaml
+
+# Local runtime logs
+.runtime-logs/
+*.log
+
+# Generated local outputs
+outputs/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Python tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+
+# Frontend / E2E test artifacts
+playwright-report/
+test-results/
+
+# Local editor settings
+.vscode/
+.idea/
+
+# Secret/security scan outputs
+gitleaks-report.*
+trufflehog*.json
+secret-scan-results/
+*.sarif
