@@ -69,3 +69,23 @@ python3 scripts/extract_api_routes.py
 - P0-2 不验证业务正确性。
 - P0-2 不替代后端 pytest、前端 build、E2E、安全扫描、性能压测。
 - P0-2 只建立最低限度的仓库卫生和 API 路由可见性检查。
+
+## 6. P0-3 First Validation Run
+
+See `docs/P0_VALIDATION_REPORT.md` for the first real validation run.
+
+Current P0-3 status summary:
+
+| Check | Current Status |
+|---|---|
+| Minimal acceptance | P0-3 已首次运行，PASS |
+| Web typecheck | P0-3 已首次运行，FAIL |
+| Web build | P0-3 已首次运行，PASS |
+| Admin typecheck | P0-3 已首次运行，PASS |
+| Admin build | P0-3 已首次运行，PASS |
+| Backend compileall | P0-3 已首次运行，PASS |
+| Docker compose config | P0-3 已首次运行，FAIL |
+| Backend pytest | 缺失 |
+| E2E | 缺失 |
+| Security scan | 缺失 |
+| Performance test | 缺失 |
