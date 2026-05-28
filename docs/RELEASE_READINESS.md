@@ -48,6 +48,7 @@
 - P1-E 已实现 V1 内容 CMS 验收闭环：首页聚合、新闻、案例、关于我们、领导团队、Banner、分类/标签、站点设置和 V1 content smoke。
 - P1-F 已新增 V1 总验收入口、auth/permission smoke、V1 验收清单和验收报告。
 - P1-G 已完成合并就绪审计：V1 总验收、route map 稳定性、forbidden artifact scan、basic secret scan、merge-tree 冲突检查和 18200 端口残留检查均通过；本阶段不 merge、不 push。
+- P2-A 已完成真实 SMTP password reset full-link UAT：临时 HTTPS tunnel、真实邮件送达、reset 页面打开、改密成功、旧密码拒绝、新密码登录成功和 token 复用拒绝均已脱敏记录。生产域名、正式 SMTP 运维手册、性能压测、安全扫描和 K8s 仍是后续事项。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
 
@@ -97,6 +98,22 @@ P1-G final readiness status:
 | Port cleanup | PASS | No listener remained on port `18200`. |
 
 P1-G readiness does not mean production release readiness. Real SMTP full-link UAT, production performance testing, external security scanning, Kubernetes validation, public file delivery hardening, formal migrations, and V2 business systems remain separate later tracks.
+
+## 5b. P2-A Password Reset Full-Link UAT Result
+
+P2-A validates the real email password reset path in a controlled temporary environment. It does not change SMS scope, password reset token semantics, user lifecycle behavior, V1 content CMS behavior, or V2 business scope.
+
+| Check | Status | Notes |
+|---|---|---|
+| SMTP provider boundary | PASS | `EMAIL_PROVIDER=smtp` supports runtime-injected SMTP credentials; default remains `dev_outbox`. |
+| SMTP config smoke | PASS | `scripts/smoke_password_reset_smtp_config.sh` verifies disabled/dev-safe behavior and fail-closed SMTP misconfiguration. |
+| Full-link UAT | PASS | One real reset email was delivered to the controlled masked recipient. |
+| Reset frontend route | PASS | `/password-reset/confirm?token=...` opened through the temporary HTTPS tunnel. |
+| Password rotation | PASS | Old password rejected and new password accepted by the login API. |
+| Token reuse | PASS | Same-link reuse was rejected. |
+| Secret handling | PASS | No SMTP password, reset token, full reset link, full recipient email, login token, or password was committed. |
+
+P2-A still does not mean production release readiness. Production domain HTTPS, formal SMTP operations, performance testing, external security scanning, Kubernetes validation, public file delivery hardening, formal migrations, and V2 business systems remain separate later tracks.
 
 ## 6. P0-3 First Validation Run
 

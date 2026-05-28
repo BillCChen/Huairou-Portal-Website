@@ -108,4 +108,20 @@ P1-G reran the complete V1 acceptance chain and merge-readiness checks before RC
 | Merge-tree conflict check | PASS | `main` is an ancestor of the P1 branch and no merge-tree conflict marker was reported. |
 | Runtime cleanup | PASS | No listener remained on port `18200`. |
 
-P1-G does not merge to `main`, does not push, does not claim real SMTP full-link UAT completion, and does not implement V2 business systems.
+P1-G does not push, does not claim production release readiness, and does not implement V2 business systems.
+
+## 10. P2-A Password Reset Full-Link UAT Addendum
+
+P2-A validates the real SMTP password reset full-link path after the P1 V1 acceptance baseline. It does not change the P1 acceptance matrix, SMS exclusion, password reset token semantics, user lifecycle behavior, V1 content CMS behavior, or V2 scope.
+
+| Check | Result | Evidence |
+|---|---|---|
+| SMTP provider support | PASS | `EMAIL_PROVIDER=smtp` with runtime-injected SMTP credentials; default remains `dev_outbox`. |
+| SMTP config smoke | PASS | `scripts/smoke_password_reset_smtp_config.sh` covers disabled and fail-closed SMTP misconfiguration paths without real email. |
+| Real reset email delivery | PASS | One email delivered to a masked controlled recipient through Alibaba Cloud Direct Mail SMTP. |
+| HTTPS reset page | PASS | Temporary tunnel opened `/password-reset/confirm?token=...` on the Portal frontend. |
+| Password rotation | PASS | Old password rejected and new password accepted through the login API. |
+| Token reuse rejection | PASS | User-confirmed same-link reuse rejection. |
+| Secret handling | PASS | No SMTP password, reset token, full reset link, full recipient email, password, or login token is committed. |
+
+The P2-A UAT is documented in `docs/P2_PASSWORD_RESET_FULL_LINK_UAT.md`. Production-domain HTTPS, formal SMTP operations, performance testing, external security scanning, Kubernetes validation, and V2 systems remain outside this addendum.

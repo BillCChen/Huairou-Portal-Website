@@ -32,9 +32,10 @@ Portal's current config style does not use the Achievement `AT_` prefix. The P1-
 |---|---|
 | `dev_outbox` | Writes a local reset email into an ignored runtime outbox. This is for local tests only. |
 | `disabled` | Does not send. The external response remains generic and any generated token is consumed. |
+| `smtp` | Sends through the configured SMTP server. This provider is disabled by default and requires runtime-injected SMTP configuration. |
 | Other values | Treated as not configured. The external response remains generic. |
 
-P1-B intentionally does not implement real SMTP. A future Portal SMTP UAT stage should follow the Achievement full-link UAT pattern and must inject secrets through environment variables or a production secret mechanism.
+P1-B originally shipped only `dev_outbox` and `disabled`. P2-A adds the `smtp` provider boundary for controlled password reset UAT while keeping `dev_outbox` as the default.
 
 ## 4. Security Behavior
 
@@ -60,6 +61,8 @@ P1-B intentionally does not implement real SMTP. A future Portal SMTP UAT stage 
 
 The script does not send real email and does not read SMTP secrets.
 
+`scripts/smoke_password_reset_smtp_config.sh` verifies that `disabled` remains safe and that incomplete SMTP configuration fails closed without sending real email or leaking secrets.
+
 ## 6. Migration Note
 
 Portal currently uses `Base.metadata.create_all` and has no Alembic migration framework. P1-B follows that baseline by adding the SQLAlchemy model only. Formal migration management remains a later production hardening item.
@@ -67,6 +70,6 @@ Portal currently uses `Base.metadata.create_all` and has no Alembic migration fr
 ## 7. Remaining Work
 
 - P1-C: implement frontend forgot password and `/password-reset/confirm` pages.
-- Add a real email provider UAT only after frontend reset pages exist.
+- Productionize SMTP operations only after the P2-A UAT evidence is accepted and production-domain HTTPS is available.
 - Add formal migrations when the Portal database lifecycle is hardened.
 - Keep SMS verification login excluded from V1 acceptance.
