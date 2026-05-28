@@ -1,53 +1,29 @@
 <script setup lang="ts">
 const loading = ref(false);
-const sending = ref(false);
+const submitted = ref(false);
 const errorMessage = ref("");
 
 const form = reactive({
-  mobile: "",
-  code: "",
-  new_password: "",
-  confirm_password: "",
+  emailOrUsername: "",
 });
 
-const sendCode = async () => {
-  sending.value = true;
-  errorMessage.value = "";
-  try {
-    await usePortalApi("/auth/sms-send", {
-      method: "POST",
-      body: { mobile: form.mobile },
-    });
-  } catch (error: any) {
-    errorMessage.value = error?.data?.message || error?.data?.detail || error?.message || "验证码发送失败";
-  } finally {
-    sending.value = false;
-  }
-};
+const safeSuccessMessage = "如果账号存在并已配置邮箱，系统将发送密码重置邮件，请查收。";
 
 const submit = async () => {
-  if (form.new_password.length < 8) {
-    errorMessage.value = "新密码长度不能少于 8 位";
+  const identifier = form.emailOrUsername.trim();
+  if (!identifier) {
+    errorMessage.value = "请输入邮箱或用户名";
     return;
   }
-  if (form.new_password !== form.confirm_password) {
-    errorMessage.value = "两次输入的密码不一致";
-    return;
-  }
+
   loading.value = true;
   errorMessage.value = "";
+  submitted.value = false;
   try {
-    await usePortalApi("/auth/reset-password", {
-      method: "POST",
-      body: {
-        mobile: form.mobile,
-        code: form.code,
-        new_password: form.new_password,
-      },
-    });
-    await navigateTo("/login");
-  } catch (error: any) {
-    errorMessage.value = error?.data?.message || error?.data?.detail || error?.message || "密码重置失败";
+    await requestPasswordReset(identifier);
+    submitted.value = true;
+  } catch (error: unknown) {
+    errorMessage.value = getPortalErrorMessage(error, "密码重置请求暂时无法提交，请稍后重试");
   } finally {
     loading.value = false;
   }
@@ -55,42 +31,43 @@ const submit = async () => {
 
 useSeoMeta({
   title: "找回密码",
-  description: "通过手机号验证码重置用户密码。",
+  description: "通过邮箱接收密码重置说明。",
 });
 </script>
 
 <template>
   <div class="container list-page">
-    <div class="card" style="max-width: 760px; margin: 0 auto; padding: 30px;">
+    <div class="card" style="max-width: 720px; margin: 0 auto; padding: 30px;">
       <div class="badge">Password Recovery</div>
       <h1 class="section-title" style="font-size: 36px; margin-top: 18px;">找回密码</h1>
-      <p class="section-desc">请输入手机号、验证码和新密码完成密码重置。</p>
-      <div class="form-grid" style="margin-top: 24px;">
-        <label>
-          <div style="margin-bottom: 8px;">手机号</div>
-          <input v-model="form.mobile" class="input" />
-        </label>
-        <label>
-          <div style="margin-bottom: 8px;">验证码</div>
-          <div style="display: flex; gap: 12px;">
-            <input v-model="form.code" class="input" style="flex: 1 1 auto;" />
-            <button class="button secondary" type="button" :disabled="sending || !form.mobile" @click="sendCode">
-              {{ sending ? "发送中" : "获取验证码" }}
-            </button>
-          </div>
-        </label>
-        <label>
-          <div style="margin-bottom: 8px;">新密码</div>
-          <input v-model="form.new_password" class="input" type="password" />
-        </label>
-        <label>
-          <div style="margin-bottom: 8px;">确认密码</div>
-          <input v-model="form.confirm_password" class="input" type="password" />
-        </label>
-      </div>
-      <div style="display: flex; gap: 12px; margin-top: 22px; flex-wrap: wrap;">
-        <button class="button" :disabled="loading" @click="submit">提交重置</button>
-        <NuxtLink class="button secondary" to="/login">返回登录</NuxtLink>
+      <p class="section-desc">输入邮箱或用户名后，系统将按安全流程处理密码重置请求。</p>
+
+      <form style="margin-top: 24px;" @submit.prevent="submit">
+        <div class="form-grid">
+          <label>
+            <div style="margin-bottom: 8px;">邮箱或用户名</div>
+            <input
+              v-model="form.emailOrUsername"
+              class="input"
+              autocomplete="username"
+              :disabled="loading"
+            />
+          </label>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 22px; flex-wrap: wrap;">
+          <button class="button" type="submit" :disabled="loading">
+            {{ loading ? "提交中" : "发送重置邮件" }}
+          </button>
+          <NuxtLink class="button secondary" to="/login">返回登录</NuxtLink>
+        </div>
+      </form>
+
+      <div
+        v-if="submitted"
+        style="margin-top: 18px; color: #0f766e; background: #ecfeff; border: 1px solid #99f6e4; border-radius: 14px; padding: 14px 16px;"
+      >
+        {{ safeSuccessMessage }}
       </div>
       <div
         v-if="errorMessage"

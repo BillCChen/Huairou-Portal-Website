@@ -12,7 +12,7 @@ P1 uses the P0 baseline as an admission gate and narrows the account scope accor
 |---|---|---:|---|
 | P1-A | V1 auth scope revision + Achievement reuse audit | docs only | current stage |
 | P1-B | Email password reset backend | yes | model/routes/provider/tests completed; frontend remains P1-C |
-| P1-C | Email password reset frontend | yes | forgot/reset confirm pages |
+| P1-C | Email password reset frontend | yes | forgot/reset confirm pages completed; full-link UAT remains later |
 | P1-D | User approval/institution user/role closure | yes | reject/disable/enable/create/assign |
 | P1-E | V1 content CMS acceptance closure | yes | homepage/news/cases/about/leaders |
 | P1-F | V1 smoke tests and acceptance docs | scripts/docs | public/auth/admin/permission smoke |
@@ -73,6 +73,27 @@ Not included:
 - SMS verification login acceptance.
 - Formal database migration framework.
 
-## 7. Next Recommended Stage
+## 7. P1-C Completion Boundary
 
-P1-C: implement the Portal email password reset frontend pages and wire them to the P1-B backend endpoints.
+P1-C implements the frontend email password reset flow against the P1-B backend endpoints.
+
+Completed:
+
+- `/forgot-password` email-or-username request page.
+- `/password-reset/confirm?token=...` reset confirm page.
+- Login-page forgot-password entry from the password login path.
+- Frontend API client methods for request and confirm.
+- Safe generic request success messaging.
+- Generic invalid-or-expired reset-link messaging.
+- No token display, token logging, browser token persistence, real SMTP send, or SMS provider work.
+
+Not included:
+
+- Backend password reset logic changes.
+- Real SMTP UAT.
+- SMS verification login acceptance.
+- Full-link UAT.
+
+## 8. Next Recommended Stage
+
+P1-D: close user approval, rejection, disable/enable, institution-user creation, and role assignment gaps.

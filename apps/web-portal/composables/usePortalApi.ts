@@ -67,3 +67,31 @@ export const usePortalApi = async <T>(path: string, options: Record<string, unkn
   const response = await $fetch<{ code: number; message: string; data: T }>(`${apiBase}${path}`, options);
   return response.data;
 };
+
+export type PasswordResetRequestPayload = {
+  email_or_username: string;
+};
+
+export type PasswordResetConfirmPayload = {
+  token: string;
+  new_password: string;
+};
+
+export const requestPasswordReset = async (emailOrUsername: string) => {
+  return usePortalApi<{ message: string }>("/auth/password-reset/request", {
+    method: "POST",
+    body: {
+      email_or_username: emailOrUsername,
+    } satisfies PasswordResetRequestPayload,
+  });
+};
+
+export const confirmPasswordReset = async (token: string, newPassword: string) => {
+  return usePortalApi<{ message: string }>("/auth/password-reset/confirm", {
+    method: "POST",
+    body: {
+      token,
+      new_password: newPassword,
+    } satisfies PasswordResetConfirmPayload,
+  });
+};

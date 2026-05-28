@@ -25,8 +25,8 @@ const submit = async () => {
     localStorage.setItem("portal_token", response.access_token);
     localStorage.setItem("portal_user", JSON.stringify(response.user));
     await navigateTo("/profile");
-  } catch (error: any) {
-    errorMessage.value = error?.data?.message || error?.data?.detail || error?.message || "登录失败";
+  } catch (error: unknown) {
+    errorMessage.value = getPortalErrorMessage(error, "登录失败");
   } finally {
     loading.value = false;
   }
@@ -34,7 +34,7 @@ const submit = async () => {
 
 useSeoMeta({
   title: "登录",
-  description: "支持账号密码登录与手机号验证码登录。",
+  description: "用户登录入口。",
 });
 </script>
 
@@ -43,7 +43,7 @@ useSeoMeta({
     <div class="card" style="max-width: 720px; margin: 0 auto; padding: 30px;">
       <div class="badge">Authentication</div>
       <h1 class="section-title" style="font-size: 36px; margin-top: 18px;">用户登录</h1>
-      <p class="section-desc">当前同时提供账号密码登录与手机号验证码登录。</p>
+      <p class="section-desc">请输入账号凭据登录门户服务。</p>
       <div style="display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap;">
         <button class="button" :class="{ secondary: tab !== 'password' }" @click="tab = 'password'">账号密码登录</button>
         <button class="button" :class="{ secondary: tab !== 'sms' }" @click="tab = 'sms'">手机号验证码登录</button>
@@ -69,7 +69,7 @@ useSeoMeta({
       <div style="display: flex; gap: 12px; margin-top: 22px; flex-wrap: wrap;">
         <button class="button" :disabled="loading" @click="submit">提交登录</button>
         <NuxtLink class="button secondary" to="/register">新用户注册</NuxtLink>
-        <NuxtLink class="button secondary" to="/forgot-password">找回密码</NuxtLink>
+        <NuxtLink v-if="tab === 'password'" class="button secondary" to="/forgot-password">忘记密码？</NuxtLink>
       </div>
       <div
         v-if="errorMessage"

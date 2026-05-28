@@ -25,8 +25,8 @@
 |---|---|---|---|
 | POST | /api/v1/auth/sms-send | 发送短信验证码 | 测试外壳 |
 | POST | /api/v1/auth/reset-password | 重置密码 | 基础实现 |
-| POST | /api/v1/auth/password-reset/request | 邮箱密码重置请求 | P1-B 后端已实现 |
-| POST | /api/v1/auth/password-reset/confirm | 邮箱密码重置确认 | P1-B 后端已实现 |
+| POST | /api/v1/auth/password-reset/request | 邮箱密码重置请求 | P1-B 后端已实现；P1-C 前端已接入 |
+| POST | /api/v1/auth/password-reset/confirm | 邮箱密码重置确认 | P1-B 后端已实现；P1-C 前端已接入 |
 | POST | /api/v1/auth/login/password | 账号密码登录 | 已有 |
 | POST | /api/v1/auth/login/sms | 短信登录 | 测试外壳 |
 | POST | /api/v1/auth/register | 个人注册 | 已有 |
@@ -67,6 +67,6 @@
 - 缺管理员创建机构用户接口。
 - 缺审核拒绝、禁用、启用、角色绑定接口。
 - 缺文件下载门禁接口。
-- 缺邮箱密码重置前端页面和完整链接 UAT。
+- 缺邮箱密码重置完整链接 UAT；前端页面已在 P1-C 接入。
 - 缺全站搜索接口。
 - 缺统计/推荐接口。

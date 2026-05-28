@@ -42,7 +42,8 @@
 - `apps/api-server/app/main.py` 存在临时 `ensure_banner_tag_column()` 兼容逻辑，后续应以正式迁移替代。
 - `SiteHeader.vue` 中的本地 Achievement 地址只能作为演示入口，不能作为生产第三方系统对接。
 - P1-A 已确认手机号验证码登录排除在 Portal V1 acceptance 外；现有 SMS UI/API 只能视为 current-code/test-path。
-- P1-B 已实现邮箱密码重置后端基础：email/username request、hash-only token、expiry、consumed/reuse rejection、dev outbox/disabled provider boundary 和后端 smoke。Portal 尚未实现前端 reset-confirm 页面、真实 SMTP UAT 和 full-link UAT。
+- P1-B 已实现邮箱密码重置后端基础：email/username request、hash-only token、expiry、consumed/reuse rejection、dev outbox/disabled provider boundary 和后端 smoke。
+- P1-C 已实现邮箱密码重置前端基础：`/forgot-password`、`/password-reset/confirm?token=...`、登录页找回密码入口和前端 API client。真实 SMTP UAT 和 full-link UAT 仍未执行。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
 
@@ -229,6 +230,22 @@ P1-B implements the backend foundation for email-based password reset.
 | Provider boundary | Implemented | `EMAIL_PROVIDER=dev_outbox` writes ignored local runtime mail; `disabled` does not send. Real SMTP is not implemented in Portal P1-B. |
 | Backend smoke | Implemented | `scripts/smoke_password_reset_backend.sh` verifies hash-only storage, password rotation, replay rejection, expiry rejection, and audit redaction. |
 | Migration framework | Not implemented | Portal still uses `Base.metadata.create_all`; formal migrations remain a later hardening item. |
-| Frontend reset pages | Not implemented | P1-C owns forgot/reset-confirm UI and full-link route wiring. |
+| Frontend reset pages | Implemented | P1-C owns and completed forgot/reset-confirm UI and login-page entry. |
 
 P1-B does not change SMS verification login scope and does not claim Portal SMTP or full-link UAT completion.
+
+## 16. P1-C Email Password Reset Frontend
+
+P1-C implements the frontend flow for the P1-B backend email password reset contract.
+
+| Item | Status | Notes |
+|---|---|---|
+| Forgot-password page | Implemented | `/forgot-password` accepts email or username and shows a generic safe response. |
+| Reset-confirm page | Implemented | `/password-reset/confirm?token=...` accepts a new password and confirms through the backend. |
+| Login-page entry | Implemented | Password login path links to `/forgot-password`. |
+| API client methods | Implemented | `requestPasswordReset` and `confirmPasswordReset` call the P1-B endpoints. |
+| Token handling | Implemented | The token is read from the route query and submitted to the backend only; it is not displayed, logged, or persisted. |
+| SMS scope | Unchanged | SMS verification login remains excluded from V1 acceptance. |
+| Real email | Not run | No real SMTP send or provider UAT in P1-C. |
+
+Remaining release gaps include full-link dev outbox/UAT smoke, optional real SMTP UAT, user-management closure, auth/admin smoke coverage, security scanning, and performance testing.
