@@ -42,7 +42,7 @@
 - `apps/api-server/app/main.py` 存在临时 `ensure_banner_tag_column()` 兼容逻辑，后续应以正式迁移替代。
 - `SiteHeader.vue` 中的本地 Achievement 地址只能作为演示入口，不能作为生产第三方系统对接。
 - P1-A 已确认手机号验证码登录排除在 Portal V1 acceptance 外；现有 SMS UI/API 只能视为 current-code/test-path。
-- P1-A 已确认邮箱邮件密码重置是 Portal V1 必做项；Portal 当前尚未实现 email token、SMTP/dev provider、reset-confirm link 和 full-link UAT。
+- P1-B 已实现邮箱密码重置后端基础：email/username request、hash-only token、expiry、consumed/reuse rejection、dev outbox/disabled provider boundary 和后端 smoke。Portal 尚未实现前端 reset-confirm 页面、真实 SMTP UAT 和 full-link UAT。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
 
@@ -216,3 +216,19 @@ P1-A records the V1 auth scope correction and password reset reuse audit.
 | P1 execution plan | Added | `docs/P1_CONTRACT_CLOSURE_PLAN.md` defines P1-B through P1-G. |
 
 P1-A does not claim password reset completion, SMS acceptance, or Portal SMTP acceptance. Those require later implementation and UAT stages.
+
+## 15. P1-B Email Password Reset Backend
+
+P1-B implements the backend foundation for email-based password reset.
+
+| Item | Status | Notes |
+|---|---|---|
+| Token persistence | Implemented | `password_reset_tokens` stores `token_hash`, `expires_at`, `consumed_at`, request IP, and user-agent metadata. |
+| Request endpoint | Implemented | `POST /api/v1/auth/password-reset/request` returns a generic safe response for existing and missing accounts. |
+| Confirm endpoint | Implemented | `POST /api/v1/auth/password-reset/confirm` consumes a valid token and updates `User.password_hash`. |
+| Provider boundary | Implemented | `EMAIL_PROVIDER=dev_outbox` writes ignored local runtime mail; `disabled` does not send. Real SMTP is not implemented in Portal P1-B. |
+| Backend smoke | Implemented | `scripts/smoke_password_reset_backend.sh` verifies hash-only storage, password rotation, replay rejection, expiry rejection, and audit redaction. |
+| Migration framework | Not implemented | Portal still uses `Base.metadata.create_all`; formal migrations remain a later hardening item. |
+| Frontend reset pages | Not implemented | P1-C owns forgot/reset-confirm UI and full-link route wiring. |
+
+P1-B does not change SMS verification login scope and does not claim Portal SMTP or full-link UAT completion.

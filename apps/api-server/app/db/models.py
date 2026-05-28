@@ -39,6 +39,20 @@ class User(TimestampMixin, Base):
     status: Mapped[str] = mapped_column(String(30), default="pending", index=True)
     role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"))
     role: Mapped["Role"] = relationship(back_populates="users")
+    password_reset_tokens: Mapped[list["PasswordResetToken"]] = relationship(back_populates="user")
+
+
+class PasswordResetToken(TimestampMixin, Base):
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    request_ip: Mapped[str | None] = mapped_column(String(50))
+    user_agent: Mapped[str | None] = mapped_column(String(255))
+    user: Mapped["User"] = relationship(back_populates="password_reset_tokens")
 
 
 class RegistrationApplication(TimestampMixin, Base):

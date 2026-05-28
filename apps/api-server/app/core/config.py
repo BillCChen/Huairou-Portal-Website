@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     admin_password: str = "ChangeMe123!"
     admin_real_name: str = "系统管理员"
     sms_test_code: str = "123456"
+    password_reset_enabled: bool = True
+    password_reset_token_ttl_minutes: int = 60
+    password_reset_dev_outbox_dir: str = str(DATA_DIR / "tmp" / "mail_outbox")
+    public_frontend_base_url: str = "http://127.0.0.1:3100"
+    email_provider: str = "dev_outbox"
     init_sample_data: bool = True
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

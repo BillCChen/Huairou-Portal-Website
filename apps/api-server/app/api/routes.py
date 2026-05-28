@@ -45,6 +45,8 @@ from app.schemas import (
     LoginRequest,
     LeaderIn,
     PageIn,
+    PasswordResetConfirmIn,
+    PasswordResetRequestIn,
     RegisterRequest,
     ResetPasswordRequest,
     ReviewIn,
@@ -55,6 +57,7 @@ from app.schemas import (
     TagIn,
     UserOut,
 )
+from app.services.password_reset import confirm_password_reset, create_password_reset_request
 
 
 router = APIRouter()
@@ -385,6 +388,22 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
     user.password_hash = hash_password(payload.new_password)
     db.commit()
     return APIResponse(data=None)
+
+
+@router.post(f"{settings.api_prefix}/auth/password-reset/request", response_model=APIResponse)
+def request_password_reset(payload: PasswordResetRequestIn, request: Request, db: Session = Depends(get_db)):
+    data = create_password_reset_request(
+        db,
+        email_or_username=payload.email_or_username,
+        request_ip=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    return APIResponse(data=data)
+
+
+@router.post(f"{settings.api_prefix}/auth/password-reset/confirm", response_model=APIResponse)
+def confirm_password_reset_route(payload: PasswordResetConfirmIn, db: Session = Depends(get_db)):
+    return APIResponse(data=confirm_password_reset(db, token=payload.token, new_password=payload.new_password))
 
 
 @router.post(f"{settings.api_prefix}/auth/login/password", response_model=APIResponse)

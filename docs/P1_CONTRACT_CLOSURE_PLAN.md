@@ -11,7 +11,7 @@ P1 uses the P0 baseline as an admission gate and narrows the account scope accor
 | Stage | Goal | Code? | Notes |
 |---|---|---:|---|
 | P1-A | V1 auth scope revision + Achievement reuse audit | docs only | current stage |
-| P1-B | Email password reset backend | yes | model/routes/provider/tests |
+| P1-B | Email password reset backend | yes | model/routes/provider/tests completed; frontend remains P1-C |
 | P1-C | Email password reset frontend | yes | forgot/reset confirm pages |
 | P1-D | User approval/institution user/role closure | yes | reject/disable/enable/create/assign |
 | P1-E | V1 content CMS acceptance closure | yes | homepage/news/cases/about/leaders |
@@ -51,6 +51,28 @@ For P1-A, only non-service checks are required. The local public API smoke remai
 | P1 first code stage | Backend before frontend | Token persistence, email provider, and API semantics must be stable before UI wiring. |
 | Real SMTP for Portal | Later UAT only | P1-B/P1-C can use mock/dev provider first; real SMTP must not be a prerequisite for local tests. |
 
-## 6. Next Recommended Stage
+## 6. P1-B Completion Boundary
 
-P1-B: implement email password reset backend by adapting Achievement design.
+P1-B implements the backend email password reset foundation by adapting the Achievement design to Portal's current FastAPI and create_all baseline.
+
+Completed:
+
+- `PasswordResetToken` persistence model.
+- `POST /api/v1/auth/password-reset/request`.
+- `POST /api/v1/auth/password-reset/confirm`.
+- SHA-256 token hash storage.
+- Expiry and consumed-token rejection.
+- Generic request response for existing and missing accounts.
+- Dev outbox / disabled provider boundary with no real SMTP send.
+- Backend smoke coverage in `scripts/smoke_password_reset_backend.sh`.
+
+Not included:
+
+- Frontend forgot/reset pages.
+- Real SMTP UAT.
+- SMS verification login acceptance.
+- Formal database migration framework.
+
+## 7. Next Recommended Stage
+
+P1-C: implement the Portal email password reset frontend pages and wire them to the P1-B backend endpoints.

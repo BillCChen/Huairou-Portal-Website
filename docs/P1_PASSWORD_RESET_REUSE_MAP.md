@@ -6,16 +6,16 @@ Achievement-Transformation password reset implementation was audited as the refe
 
 | Area | Achievement Evidence | Portal Current State | Reuse Decision |
 |---|---|---|---|
-| Backend request route | `backend/app/api/v1/auth.py` exposes `POST /api/v1/auth/password-reset/request` | missing; Portal only has SMS-code `/api/v1/auth/reset-password` | reuse route semantics and safe response behavior |
-| Backend confirm route | `backend/app/api/v1/auth.py` exposes `POST /api/v1/auth/password-reset/confirm` | missing | reuse confirm semantics with Portal response envelope |
-| Token model | `backend/app/models/auth.py` defines `PasswordResetToken`; migration `backend/migrations/versions/20260528_0008_auth_channel_foundation.py` creates `password_reset_tokens` | missing | reuse schema concept, adapted to Portal models |
-| Token hash | `backend/app/services/auth_channels.py` stores `hash_secret(token)` in `token_hash` | missing | required |
-| Expiry | `PasswordResetToken.expires_at`; `confirm_password_reset` expires stale tokens | missing | required |
-| Consumed state | `PasswordResetToken.status` supports `active`, `consumed`, `expired`, `revoked`; confirm marks consumed | missing | required |
-| Email provider | `backend/app/services/email_delivery.py`; `scripts/run_email_delivery_validation.sh` | missing | reuse provider abstraction pattern, not direct code copy |
+| Backend request route | `backend/app/api/v1/auth.py` exposes `POST /api/v1/auth/password-reset/request` | implemented in `apps/api-server/app/api/routes.py` | reuse route semantics and safe response behavior |
+| Backend confirm route | `backend/app/api/v1/auth.py` exposes `POST /api/v1/auth/password-reset/confirm` | implemented in `apps/api-server/app/api/routes.py` | reuse confirm semantics with Portal response envelope |
+| Token model | `backend/app/models/auth.py` defines `PasswordResetToken`; migration `backend/migrations/versions/20260528_0008_auth_channel_foundation.py` creates `password_reset_tokens` | implemented in `apps/api-server/app/db/models.py`; formal migration still absent | reuse schema concept, adapted to Portal models |
+| Token hash | `backend/app/services/auth_channels.py` stores `hash_secret(token)` in `token_hash` | implemented in `apps/api-server/app/services/password_reset.py` with SHA-256 | required |
+| Expiry | `PasswordResetToken.expires_at`; `confirm_password_reset` expires stale tokens | implemented through `expires_at` and confirm rejection | required |
+| Consumed state | `PasswordResetToken.status` supports `active`, `consumed`, `expired`, `revoked`; confirm marks consumed | implemented with `consumed_at`; consumed, expired, and invalid tokens are rejected | required |
+| Email provider | `backend/app/services/email_delivery.py`; `scripts/run_email_delivery_validation.sh` | implemented as a minimal `dev_outbox`/`disabled` boundary in `apps/api-server/app/services/password_reset.py` | reuse provider abstraction pattern, not direct code copy |
 | Frontend route | `frontend/src/router/index.ts` defines `/password-reset` and `/password-reset/confirm`; `frontend/src/services/auth.ts` calls request/confirm APIs | Portal has `/forgot-password` SMS-code page and no confirm route | implement Portal pages with matching reset link path |
 | Full-link UAT | `docs/PASSWORD_RESET_FULL_LINK_UAT.md` | missing | reuse process and redaction rules |
-| Tests | `backend/tests/test_auth_channels.py`, `backend/tests/test_config_guardrails.py` | missing focused reset tests | port minimal backend tests and add frontend build/typecheck coverage |
+| Tests | `backend/tests/test_auth_channels.py`, `backend/tests/test_config_guardrails.py` | `scripts/smoke_password_reset_backend.sh` added for backend reset smoke | port minimal backend tests and add frontend build/typecheck coverage |
 
 ## 2. Evidence Chain
 
@@ -28,7 +28,7 @@ Achievement-Transformation password reset implementation was audited as the refe
 | expiry field | `expires_at` |
 | consumed/reuse protection | `status=consumed` after success; replay returns invalid token response |
 | email provider abstraction | `disabled`, `dev_outbox`, and `smtp` provider boundaries |
-| public frontend base URL | `AT_PUBLIC_FRONTEND_BASE_URL` is used to build `/password-reset/confirm?token=...` |
+| public frontend base URL | Achievement uses `AT_PUBLIC_FRONTEND_BASE_URL`; Portal P1-B uses `PUBLIC_FRONTEND_BASE_URL` to build `/password-reset/confirm?token=...` |
 | SMTP acceptance document | `docs/ALIYUN_DIRECT_MAIL_SMTP_ACCEPTANCE.md` |
 | full-link UAT document | `docs/PASSWORD_RESET_FULL_LINK_UAT.md` |
 | test coverage | request safety, token hashing, password rotation, replay rejection, expiry, account-state blocking, rate limiting, SMTP failure sanitization, monitoring redaction |
@@ -47,13 +47,13 @@ The selected route is to reuse the Achievement state machine, security requireme
 
 ## 4. Required Portal Backend Work
 
-- Add password reset token persistence.
-- Add request endpoint.
-- Add confirm endpoint.
-- Add email notification service or provider wrapper.
-- Add config for public frontend base URL and SMTP/dev provider.
-- Add audit events.
-- Add tests.
+- P1-B added password reset token persistence.
+- P1-B added request endpoint.
+- P1-B added confirm endpoint.
+- P1-B added a dev/disabled email notification provider boundary.
+- P1-B added config for public frontend base URL, token TTL, and dev outbox.
+- P1-B added auth audit events for request, delivery failure, confirm success, and confirm failure.
+- P1-B added backend smoke coverage.
 
 ## 5. Required Portal Frontend Work
 

@@ -45,6 +45,8 @@
 | POST | `/api/v1/auth/login/password` | `login_password` |
 | POST | `/api/v1/auth/login/sms` | `login_sms` |
 | GET | `/api/v1/auth/me` | `get_me` |
+| POST | `/api/v1/auth/password-reset/confirm` | `confirm_password_reset_route` |
+| POST | `/api/v1/auth/password-reset/request` | `request_password_reset` |
 | POST | `/api/v1/auth/register` | `register_user` |
 | POST | `/api/v1/auth/reset-password` | `reset_password` |
 | POST | `/api/v1/auth/sms-send` | `send_sms_code` |
@@ -65,4 +67,4 @@
 
 ## Summary
 
-- Total routes found: 58
+- Total routes found: 60
