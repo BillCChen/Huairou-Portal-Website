@@ -13,7 +13,7 @@ P1 uses the P0 baseline as an admission gate and narrows the account scope accor
 | P1-A | V1 auth scope revision + Achievement reuse audit | docs only | current stage |
 | P1-B | Email password reset backend | yes | model/routes/provider/tests completed; frontend remains P1-C |
 | P1-C | Email password reset frontend | yes | forgot/reset confirm pages completed; full-link UAT remains later |
-| P1-D | User approval/institution user/role closure | yes | reject/disable/enable/create/assign |
+| P1-D | User approval/institution user/role closure | yes | completed: reject/disable/enable/create/assign |
 | P1-E | V1 content CMS acceptance closure | yes | homepage/news/cases/about/leaders |
 | P1-F | V1 smoke tests and acceptance docs | scripts/docs | public/auth/admin/permission smoke |
 | P1-G | P1 merge readiness | docs/scripts | final validation and tag |
@@ -94,6 +94,29 @@ Not included:
 - SMS verification login acceptance.
 - Full-link UAT.
 
-## 8. Next Recommended Stage
+## 8. P1-D Completion Boundary
 
-P1-D: close user approval, rejection, disable/enable, institution-user creation, and role assignment gaps.
+P1-D closes the Portal V1 user lifecycle using the existing `User.status`, `Role`, `RegistrationApplication`, `AuditLog`, and login-state checks.
+
+Completed:
+
+- Admin-created institution users through `POST /api/v1/admin/users`.
+- Pending registration approval and rejection.
+- Active user disable and disabled-user enable.
+- Minimal role assignment through `PUT /api/v1/admin/users/{user_id}/role`.
+- Role metadata listing through `GET /api/v1/admin/roles`.
+- Audit records for create, approve, reject, disable, enable, and role assignment.
+- Admin-console user lifecycle controls.
+- Isolated backend smoke coverage in `scripts/smoke_user_lifecycle_backend.sh`.
+
+Not included:
+
+- Password-reset logic changes.
+- SMS verification login acceptance.
+- Real SMS or email sending.
+- V2 business modules.
+- Formal database migrations.
+
+## 9. Next Recommended Stage
+
+P1-E: close V1 content CMS acceptance for homepage, news, cases, about pages, and leaders without adding V2 business modules.

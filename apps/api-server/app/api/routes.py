@@ -35,6 +35,7 @@ from app.db.models import (
 from app.db.session import get_db
 from app.schemas import (
     APIResponse,
+    AdminUserCreateIn,
     ArticleIn,
     AuthTokenOut,
     BannerIn,
@@ -54,8 +55,10 @@ from app.schemas import (
     SettingIn,
     SmsSendRequest,
     SmsLoginRequest,
+    UserRejectIn,
     TagIn,
     UserOut,
+    UserRoleUpdateIn,
 )
 from app.services.password_reset import confirm_password_reset, create_password_reset_request
 
@@ -74,6 +77,11 @@ ALLOWED_UPLOAD_MIME_TYPES = {
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {".xlsx"},
 }
 MAX_UPLOAD_SIZE = 52_428_800
+CREATE_USER_ROLE_CODES = {"registered_user", "institute_editor"}
+USER_STATUS_PENDING = "pending"
+USER_STATUS_ACTIVE = "active"
+USER_STATUS_REJECTED = "rejected"
+USER_STATUS_DISABLED = "disabled"
 
 
 def paginate(query, db: Session, page: int, page_size: int):
@@ -126,7 +134,15 @@ def encode(value):
     return jsonable_encoder(value)
 
 
-def write_audit_log(db: Session, user_id: int | None, module: str, action: str, object_type: str, object_id: str | None):
+def write_audit_log(
+    db: Session,
+    user_id: int | None,
+    module: str,
+    action: str,
+    object_type: str,
+    object_id: str | None,
+    detail: dict | None = None,
+):
     db.add(
         AuditLog(
             user_id=user_id,
@@ -134,7 +150,7 @@ def write_audit_log(db: Session, user_id: int | None, module: str, action: str, 
             action=action,
             object_type=object_type,
             object_id=object_id,
-            detail_json={},
+            detail_json=detail or {},
         )
     )
 
@@ -182,6 +198,41 @@ def upload_validation_error(upload: UploadFile, contents: bytes):
     if mime_type not in ALLOWED_UPLOAD_MIME_TYPES or file_extension not in ALLOWED_UPLOAD_MIME_TYPES[mime_type]:
         return api_error(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, 415, "Unsupported file type")
     return None
+
+
+def serialize_admin_user(user: User) -> dict:
+    data = UserOut.model_validate(user).model_dump()
+    data["role_code"] = user.role.code if user.role else None
+    data["role_name"] = user.role.name if user.role else None
+    return data
+
+
+def get_role_by_code(db: Session, role_code: str) -> Role:
+    role = db.scalar(select(Role).where(Role.code == role_code))
+    if not role:
+        raise HTTPException(status_code=400, detail="Invalid role")
+    return role
+
+
+def active_super_admin_count(db: Session) -> int:
+    return db.scalar(
+        select(func.count())
+        .select_from(User)
+        .join(Role, User.role_id == Role.id)
+        .where(User.status == USER_STATUS_ACTIVE, Role.code == "super_admin")
+    ) or 0
+
+
+def ensure_not_last_active_super_admin(db: Session, target_user: User) -> None:
+    if target_user.role.code == "super_admin" and target_user.status == USER_STATUS_ACTIVE and active_super_admin_count(db) <= 1:
+        raise HTTPException(status_code=400, detail="Cannot modify the last active super admin")
+
+
+def get_user_or_404(db: Session, user_id: int) -> User:
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
 
 
 @router.get("/healthz", response_model=APIResponse)
@@ -811,31 +862,164 @@ def admin_list_users(
     if status:
         query = query.where(User.status == status)
     result = paginate(query, db, page, page_size)
-    result["items"] = [UserOut.model_validate(item).model_dump() for item in result["items"]]
+    result["items"] = [serialize_admin_user(item) for item in result["items"]]
     return APIResponse(data=result)
+
+
+@router.get(f"{settings.api_prefix}/admin/roles", response_model=APIResponse)
+def admin_list_roles(_: User = Depends(require_admin), db: Session = Depends(get_db)):
+    roles = db.scalars(select(Role).order_by(Role.id.asc())).all()
+    return APIResponse(
+        data=[
+            {"id": role.id, "code": role.code, "name": role.name, "description": role.description}
+            for role in roles
+        ]
+    )
 
 
 @router.get(f"{settings.api_prefix}/admin/users/pending", response_model=APIResponse)
 def admin_list_pending_users(_: User = Depends(require_admin), db: Session = Depends(get_db)):
     users = db.scalars(select(User).where(User.status == "pending").order_by(User.created_at.desc())).all()
-    return APIResponse(data=[UserOut.model_validate(item) for item in users])
+    return APIResponse(data=[serialize_admin_user(item) for item in users])
+
+
+@router.post(f"{settings.api_prefix}/admin/users", response_model=APIResponse)
+def admin_create_user(payload: AdminUserCreateIn, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    role_code = payload.role_code.strip()
+    if role_code not in CREATE_USER_ROLE_CODES:
+        raise HTTPException(status_code=400, detail="Role is not allowed for institution user creation")
+    if db.scalar(select(User).where(User.username == payload.username)):
+        raise HTTPException(status_code=400, detail="Username already exists")
+    if payload.mobile and db.scalar(select(User).where(User.mobile == payload.mobile)):
+        raise HTTPException(status_code=400, detail="Mobile already exists")
+    if payload.email and db.scalar(select(User).where(func.lower(User.email) == payload.email.lower())):
+        raise HTTPException(status_code=400, detail="Email already exists")
+
+    role = get_role_by_code(db, role_code)
+    user = User(
+        username=payload.username,
+        mobile=payload.mobile,
+        email=str(payload.email) if payload.email else None,
+        password_hash=hash_password(payload.password),
+        real_name=payload.real_name,
+        organization=payload.organization,
+        expertise=payload.expertise,
+        status=USER_STATUS_ACTIVE,
+        role_id=role.id,
+    )
+    db.add(user)
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="User identity already exists") from None
+    write_audit_log(
+        db,
+        current_user.id,
+        "users",
+        "create",
+        "user",
+        str(user.id),
+        {"role_code": role.code, "status": USER_STATUS_ACTIVE},
+    )
+    db.commit()
+    db.refresh(user)
+    return APIResponse(data=serialize_admin_user(user))
 
 
 @router.post(f"{settings.api_prefix}/admin/users/{{user_id}}/approve", response_model=APIResponse)
 def admin_approve_user(user_id: int, payload: ReviewIn, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
-    user = db.get(User, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    user = get_user_or_404(db, user_id)
+    if user.status != USER_STATUS_PENDING:
+        raise HTTPException(status_code=400, detail="Only pending users can be approved")
     application = db.scalar(select(RegistrationApplication).where(RegistrationApplication.user_id == user_id))
-    user.status = "active"
+    user.status = USER_STATUS_ACTIVE
     if application:
         application.review_status = "approved"
         application.review_comment = payload.review_comment
         application.reviewed_by = current_user.id
         application.reviewed_at = datetime.now(UTC)
-    write_audit_log(db, current_user.id, "users", "approve", "user", str(user_id))
+    write_audit_log(db, current_user.id, "users", "approve", "user", str(user_id), {"status": USER_STATUS_ACTIVE})
     db.commit()
-    return APIResponse(data={"status": "active"})
+    db.refresh(user)
+    return APIResponse(data=serialize_admin_user(user))
+
+
+@router.post(f"{settings.api_prefix}/admin/users/{{user_id}}/reject", response_model=APIResponse)
+def admin_reject_user(user_id: int, payload: UserRejectIn, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    user = get_user_or_404(db, user_id)
+    if user.status != USER_STATUS_PENDING:
+        raise HTTPException(status_code=400, detail="Only pending users can be rejected")
+    application = db.scalar(select(RegistrationApplication).where(RegistrationApplication.user_id == user_id))
+    user.status = USER_STATUS_REJECTED
+    if application:
+        application.review_status = "rejected"
+        application.review_comment = payload.reason
+        application.reviewed_by = current_user.id
+        application.reviewed_at = datetime.now(UTC)
+    write_audit_log(
+        db,
+        current_user.id,
+        "users",
+        "reject",
+        "user",
+        str(user_id),
+        {"status": USER_STATUS_REJECTED, "has_reason": bool(payload.reason)},
+    )
+    db.commit()
+    db.refresh(user)
+    return APIResponse(data=serialize_admin_user(user))
+
+
+@router.post(f"{settings.api_prefix}/admin/users/{{user_id}}/disable", response_model=APIResponse)
+def admin_disable_user(user_id: int, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    user = get_user_or_404(db, user_id)
+    if user.id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot disable your own account")
+    if user.status != USER_STATUS_ACTIVE:
+        raise HTTPException(status_code=400, detail="Only active users can be disabled")
+    ensure_not_last_active_super_admin(db, user)
+    user.status = USER_STATUS_DISABLED
+    write_audit_log(db, current_user.id, "users", "disable", "user", str(user_id), {"status": USER_STATUS_DISABLED})
+    db.commit()
+    db.refresh(user)
+    return APIResponse(data=serialize_admin_user(user))
+
+
+@router.post(f"{settings.api_prefix}/admin/users/{{user_id}}/enable", response_model=APIResponse)
+def admin_enable_user(user_id: int, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    user = get_user_or_404(db, user_id)
+    if user.status != USER_STATUS_DISABLED:
+        raise HTTPException(status_code=400, detail="Only disabled users can be enabled")
+    user.status = USER_STATUS_ACTIVE
+    write_audit_log(db, current_user.id, "users", "enable", "user", str(user_id), {"status": USER_STATUS_ACTIVE})
+    db.commit()
+    db.refresh(user)
+    return APIResponse(data=serialize_admin_user(user))
+
+
+@router.put(f"{settings.api_prefix}/admin/users/{{user_id}}/role", response_model=APIResponse)
+def admin_update_user_role(user_id: int, payload: UserRoleUpdateIn, current_user: User = Depends(require_super_admin), db: Session = Depends(get_db)):
+    user = get_user_or_404(db, user_id)
+    role = get_role_by_code(db, payload.role_code.strip())
+    old_role_code = user.role.code
+    if user.id == current_user.id and role.code != "super_admin":
+        raise HTTPException(status_code=400, detail="Cannot remove your own super admin role")
+    if old_role_code == "super_admin" and role.code != "super_admin":
+        ensure_not_last_active_super_admin(db, user)
+    user.role_id = role.id
+    write_audit_log(
+        db,
+        current_user.id,
+        "users",
+        "assign_role",
+        "user",
+        str(user_id),
+        {"old_role_code": old_role_code, "new_role_code": role.code},
+    )
+    db.commit()
+    db.refresh(user)
+    return APIResponse(data=serialize_admin_user(user))
 
 
 @router.get(f"{settings.api_prefix}/admin/downloads", response_model=APIResponse)

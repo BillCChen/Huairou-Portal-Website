@@ -33,6 +33,7 @@
 | GET | `/api/v1/admin/pages` | `admin_list_pages` |
 | POST | `/api/v1/admin/pages` | `admin_create_page` |
 | PUT | `/api/v1/admin/pages/{page_id}` | `admin_update_page` |
+| GET | `/api/v1/admin/roles` | `admin_list_roles` |
 | GET | `/api/v1/admin/service-requests` | `admin_list_service_requests` |
 | GET | `/api/v1/admin/settings` | `admin_list_settings` |
 | GET | `/api/v1/admin/settings/site` | `admin_get_site_settings` |
@@ -40,8 +41,13 @@
 | GET | `/api/v1/admin/tags` | `admin_list_tags` |
 | POST | `/api/v1/admin/tags` | `admin_create_tag` |
 | GET | `/api/v1/admin/users` | `admin_list_users` |
+| POST | `/api/v1/admin/users` | `admin_create_user` |
 | GET | `/api/v1/admin/users/pending` | `admin_list_pending_users` |
 | POST | `/api/v1/admin/users/{user_id}/approve` | `admin_approve_user` |
+| POST | `/api/v1/admin/users/{user_id}/disable` | `admin_disable_user` |
+| POST | `/api/v1/admin/users/{user_id}/enable` | `admin_enable_user` |
+| POST | `/api/v1/admin/users/{user_id}/reject` | `admin_reject_user` |
+| PUT | `/api/v1/admin/users/{user_id}/role` | `admin_update_user_role` |
 | POST | `/api/v1/auth/login/password` | `login_password` |
 | POST | `/api/v1/auth/login/sms` | `login_sms` |
 | GET | `/api/v1/auth/me` | `get_me` |
@@ -67,4 +73,4 @@
 
 ## Summary
 
-- Total routes found: 60
+- Total routes found: 66

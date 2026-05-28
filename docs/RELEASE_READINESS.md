@@ -44,6 +44,7 @@
 - P1-A 已确认手机号验证码登录排除在 Portal V1 acceptance 外；现有 SMS UI/API 只能视为 current-code/test-path。
 - P1-B 已实现邮箱密码重置后端基础：email/username request、hash-only token、expiry、consumed/reuse rejection、dev outbox/disabled provider boundary 和后端 smoke。
 - P1-C 已实现邮箱密码重置前端基础：`/forgot-password`、`/password-reset/confirm?token=...`、登录页找回密码入口和前端 API client。真实 SMTP UAT 和 full-link UAT 仍未执行。
+- P1-D 已实现用户生命周期闭环基础：审核通过/驳回、禁用/启用、机构用户创建、角色分配、后台 UI 和 user lifecycle smoke。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
 
@@ -249,3 +250,20 @@ P1-C implements the frontend flow for the P1-B backend email password reset cont
 | Real email | Not run | No real SMTP send or provider UAT in P1-C. |
 
 Remaining release gaps include full-link dev outbox/UAT smoke, optional real SMTP UAT, user-management closure, auth/admin smoke coverage, security scanning, and performance testing.
+
+## 17. P1-D User Lifecycle Closure
+
+P1-D closes the Portal V1 account-management lifecycle without changing password-reset behavior or SMS scope.
+
+| Item | Status | Notes |
+|---|---|---|
+| User states | Implemented | `pending`, `active`, `rejected`, and `disabled` are enforced by password login; authenticated dependency resolution also rejects non-active users. |
+| Approval/rejection | Implemented | Pending registrations can be approved or rejected through admin APIs and admin-console actions. |
+| Disable/enable | Implemented | Active users can be disabled and disabled users can be enabled; self-disable and last active super-admin modification are protected. |
+| Institution user creation | Implemented | Admins can create active users with `registered_user` or `institute_editor` roles. Initial passwords are hashed and not returned. |
+| Role assignment | Implemented | `super_admin` can assign roles; self-demotion and last active super-admin demotion are blocked. |
+| Audit | Implemented | create, approve, reject, disable, enable, and assign_role user events are recorded without raw passwords or tokens. |
+| Admin UI | Implemented | `UsersView.vue` supports lifecycle operations and refreshes after each action. |
+| Smoke | Implemented | `scripts/smoke_user_lifecycle_backend.sh` validates the user lifecycle against isolated runtime SQLite. |
+
+Remaining release gaps include broader permission-matrix tests, content CMS acceptance closure, full-link password-reset UAT, security scanning, and performance testing.

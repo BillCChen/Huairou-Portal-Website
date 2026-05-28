@@ -52,7 +52,13 @@
 | PUT | /api/v1/admin/settings/{setting_key} | 更新设置 | 已有 |
 | GET | /api/v1/admin/users | 用户列表 | 已有 |
 | GET | /api/v1/admin/users/pending | 待审核用户 | 已有 |
+| GET | /api/v1/admin/roles | 角色元数据 | P1-D 已实现 |
+| POST | /api/v1/admin/users | 管理员创建机构用户 | P1-D 已实现 |
 | POST | /api/v1/admin/users/{user_id}/approve | 审核通过 | 已有 |
+| POST | /api/v1/admin/users/{user_id}/reject | 审核驳回 | P1-D 已实现 |
+| POST | /api/v1/admin/users/{user_id}/disable | 禁用用户 | P1-D 已实现 |
+| POST | /api/v1/admin/users/{user_id}/enable | 启用用户 | P1-D 已实现 |
+| PUT | /api/v1/admin/users/{user_id}/role | 用户角色分配 | P1-D 已实现 |
 | GET/POST/PUT | /api/v1/admin/downloads | 下载资源管理 | 已有 |
 | GET | /api/v1/admin/service-requests | 服务请求列表 | 已有 |
 | GET | /api/v1/admin/audit-logs | 操作日志 | 已有 |
@@ -63,9 +69,7 @@
 - 缺统一业务错误码。
 - 文档中响应 `code` 口径与代码可能不一致。
 - 缺完整认证 API smoke 脚本；P1-B 已增加邮箱密码重置后端 smoke。
-- 缺权限矩阵测试。
-- 缺管理员创建机构用户接口。
-- 缺审核拒绝、禁用、启用、角色绑定接口。
+- 缺权限矩阵测试；P1-D 已增加用户生命周期后端 smoke。
 - 缺文件下载门禁接口。
 - 缺邮箱密码重置完整链接 UAT；前端页面已在 P1-C 接入。
 - 缺全站搜索接口。

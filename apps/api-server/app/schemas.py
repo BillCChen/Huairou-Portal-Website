@@ -145,6 +145,25 @@ class ReviewIn(BaseModel):
     review_comment: str | None = None
 
 
+class AdminUserCreateIn(BaseModel):
+    username: str = Field(min_length=3, max_length=100)
+    email: EmailStr | None = None
+    mobile: str | None = Field(default=None, max_length=30)
+    real_name: str = Field(min_length=1, max_length=100)
+    organization: str | None = Field(default=None, max_length=255)
+    expertise: str | None = Field(default=None, max_length=255)
+    password: str = Field(min_length=8, max_length=128)
+    role_code: str = "institute_editor"
+
+
+class UserRejectIn(BaseModel):
+    reason: str | None = Field(default=None, max_length=500)
+
+
+class UserRoleUpdateIn(BaseModel):
+    role_code: str = Field(min_length=1, max_length=50)
+
+
 class ServiceRequestIn(BaseModel):
     type: str = "consultation"
     subject: str
