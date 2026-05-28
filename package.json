@@ -10,6 +10,6 @@
     "build:web": "pnpm --dir apps/web-portal build",
     "build:admin": "pnpm --dir apps/admin-console build",
     "check:admin": "pnpm --dir apps/admin-console typecheck",
-    "check:web": "pnpm --dir apps/web-portal nuxi typecheck"
+    "check:web": "pnpm --dir apps/web-portal exec nuxi typecheck"
   }
 }

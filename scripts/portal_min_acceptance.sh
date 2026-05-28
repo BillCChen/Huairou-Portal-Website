@@ -37,6 +37,10 @@ else
 fi
 
 echo
+echo "== Docker compose config =="
+./scripts/check_docker_compose_config.sh
+
+echo
 echo "== Python availability =="
 python3 --version
 

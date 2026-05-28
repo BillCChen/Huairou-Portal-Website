@@ -89,3 +89,13 @@ Current P0-3 status summary:
 | E2E | 缺失 |
 | Security scan | 缺失 |
 | Performance test | 缺失 |
+
+## 7. P0-3b Validation Entrypoint Fix
+
+P0-3b corrected validation-entry behavior without changing business source code.
+
+| Check | P0-3b Status | Notes |
+|---|---|---|
+| `pnpm check:web` | FAIL | Root command form is fixed. Current failure is `Cannot find matching tsconfig.json` for `apps/web-portal`, which requires a later validation/config decision. |
+| Docker compose config | PASS | `scripts/check_docker_compose_config.sh` uses `deploy/docker/.env.example` for config validation. Compose `.env` references are optional, so config validation no longer requires a real `.env` file. |
+| Minimal acceptance | Pending rerun after commit | `scripts/portal_min_acceptance.sh` now includes Docker Compose config validation and still requires a clean working tree. |

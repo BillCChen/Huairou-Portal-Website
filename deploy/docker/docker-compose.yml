@@ -2,7 +2,8 @@ services:
   postgres:
     image: postgres:16-alpine
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       POSTGRES_DB: portal
       POSTGRES_USER: portal
@@ -22,7 +23,8 @@ services:
       context: ../..
       dockerfile: deploy/docker/api.Dockerfile
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       DATABASE_URL: postgresql+psycopg://portal:${POSTGRES_PASSWORD}@postgres:5432/portal
       SECRET_KEY: ${PORTAL_SECRET_KEY}

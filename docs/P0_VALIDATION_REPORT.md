@@ -81,3 +81,14 @@ Blocked or missing verification areas:
 Proceed to P0-4 only if the next task is to formalize validation gates and close non-business tooling gaps such as the web typecheck script and Docker env template workflow.
 
 Proceed to P1 only after deciding whether P0/P1 is allowed to change validation scripts and package scripts. Without that allowance, `pnpm check:web` and Docker Compose config cannot be made passing gates.
+
+## 8. P0-3b Validation Entrypoint Fix
+
+P0-3b targeted two validation-entry failures from the first real validation run:
+
+| Item | Previous Result | P0-3b Result | Notes |
+|---|---|---|---|
+| Web typecheck root script | FAIL | FAIL | Root script command form was corrected from direct pnpm binary invocation to `pnpm --dir apps/web-portal exec nuxi typecheck`. The command now reaches Nuxt typecheck but fails because no matching `tsconfig.json` exists in `apps/web-portal` or parent directories. This is a project typecheck configuration gap, not the previous root script parsing failure. |
+| Docker compose config | FAIL | PASS | `deploy/docker/docker-compose.yml` now marks `.env` entries as optional and `scripts/check_docker_compose_config.sh` validates config with `--env-file deploy/docker/.env.example`, without creating or committing a real `.env` file. |
+
+No business source code was modified.
