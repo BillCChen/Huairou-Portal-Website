@@ -117,11 +117,10 @@ DB_PATH="${RUNTIME_DIR}/portal_auth_permission_smoke.sqlite3"
 UPLOAD_DIR="${RUNTIME_DIR}/uploads"
 LOG_PATH="${RUNTIME_DIR}/api.log"
 PID_PATH="${RUNTIME_DIR}/api.pid"
-WORK_DIR="${RUNTIME_DIR}/requests"
 
 rm -f "${DB_PATH}"
-rm -rf "${WORK_DIR}"
-mkdir -p "${UPLOAD_DIR}" "${WORK_DIR}"
+rm -rf "${RUNTIME_DIR}/requests"
+mkdir -p "${UPLOAD_DIR}"
 
 log "starting API at ${BASE_URL}"
 (
@@ -153,174 +152,96 @@ if [ "${API_READY}" -ne 1 ]; then
   fail "API did not become ready on ${BASE_URL}"
 fi
 
-json_field() {
-  "${VENV_DIR}/bin/python" - "$1" "$2" <<'PY'
+BASE_URL="${BASE_URL}" "${VENV_DIR}/bin/python" - <<'PY'
 import json
-import sys
-payload = json.loads(sys.argv[1])
-value = payload
-for part in sys.argv[2].split("."):
-    value = value[part]
-print(value)
-PY
-}
-
-expect_http() {
-  local expected="$1"
-  local actual="$2"
-  local label="$3"
-  if [ "${actual}" != "${expected}" ]; then
-    fail "${label} returned ${actual}, expected ${expected}"
-  fi
-}
-
-request_json() {
-  local method="$1"
-  local path="$2"
-  local body_file="$3"
-  local output_file="$4"
-  local token="${5:-}"
-  if [ -n "${token}" ]; then
-    curl -sS -o "${output_file}" -w "%{http_code}" \
-      -X "${method}" "${BASE_URL}${path}" \
-      -H 'Content-Type: application/json' \
-      -H "Authorization: Bearer ${token}" \
-      --data-binary @"${body_file}"
-    return 0
-  fi
-  curl -sS -o "${output_file}" -w "%{http_code}" \
-    -X "${method}" "${BASE_URL}${path}" \
-    -H 'Content-Type: application/json' \
-    --data-binary @"${body_file}"
-}
-
-get_json() {
-  local path="$1"
-  local output_file="$2"
-  local token="${3:-}"
-  if [ -n "${token}" ]; then
-    curl -sS -o "${output_file}" -w "%{http_code}" \
-      "${BASE_URL}${path}" \
-      -H "Authorization: Bearer ${token}"
-    return 0
-  fi
-  curl -sS -o "${output_file}" -w "%{http_code}" \
-    "${BASE_URL}${path}"
-}
-
-suffix="$(date +%s)"
-admin_login="${WORK_DIR}/admin-login.json"
-user_register="${WORK_DIR}/user-register.json"
-user_login="${WORK_DIR}/user-login.json"
-empty_body="${WORK_DIR}/empty.json"
-role_update="${WORK_DIR}/role-update.json"
-response="${WORK_DIR}/response.json"
-printf '{}' > "${empty_body}"
-admin_password="$(
-  cd apps/api-server
-  "${VENV_DIR}/bin/python" - <<'PY'
-from app.core.config import settings
-print(settings.admin_password)
-PY
-)"
-ordinary_password="$("${VENV_DIR}/bin/python" - <<'PY'
+import os
 import secrets
-print(f"Auth{secrets.token_urlsafe(12)}A1!")
-PY
-)"
-ordinary_mobile="157${suffix: -8}"
-ordinary_email="auth-${suffix}@example.com"
-
-unauth_dashboard_code="$(get_json "/api/v1/admin/dashboard" "${response}")"
-expect_http "401" "${unauth_dashboard_code}" "anonymous admin dashboard rejection"
-
-TARGET_PATH="${admin_login}" ADMIN_PASSWORD="${admin_password}" "${VENV_DIR}/bin/python" - <<'PY'
-import json
-import os
-from pathlib import Path
-
-Path(os.environ["TARGET_PATH"]).write_text(
-    json.dumps({"username": "admin", "password": os.environ["ADMIN_PASSWORD"]}, ensure_ascii=False),
-    encoding="utf-8",
-)
-PY
-
-admin_code="$(request_json POST "/api/v1/auth/login/password" "${admin_login}" "${response}")"
-expect_http "200" "${admin_code}" "admin login"
-admin_token="$(json_field "$(cat "${response}")" "data.access_token")"
-
-admin_dashboard_code="$(get_json "/api/v1/admin/dashboard" "${response}" "${admin_token}")"
-expect_http "200" "${admin_dashboard_code}" "admin dashboard access"
-super_settings_code="$(get_json "/api/v1/admin/settings" "${response}" "${admin_token}")"
-expect_http "200" "${super_settings_code}" "super admin settings access"
-
-TARGET_PATH="${user_register}" ORDINARY_MOBILE="${ordinary_mobile}" ORDINARY_EMAIL="${ordinary_email}" ORDINARY_PASSWORD="${ordinary_password}" "${VENV_DIR}/bin/python" - <<'PY'
-import json
-import os
-from pathlib import Path
-
-Path(os.environ["TARGET_PATH"]).write_text(
-    json.dumps(
-        {
-            "real_name": "权限边界用户",
-            "organization": "P1-F Smoke Org",
-            "mobile": os.environ["ORDINARY_MOBILE"],
-            "email": os.environ["ORDINARY_EMAIL"],
-            "expertise": "成果转化",
-            "password": os.environ["ORDINARY_PASSWORD"],
-        },
-        ensure_ascii=False,
-    ),
-    encoding="utf-8",
-)
-PY
-register_code="$(request_json POST "/api/v1/auth/register" "${user_register}" "${response}")"
-expect_http "200" "${register_code}" "ordinary user registration"
-ordinary_user_id="$(json_field "$(cat "${response}")" "data.user_id")"
-
-approve_code="$(request_json POST "/api/v1/admin/users/${ordinary_user_id}/approve" "${empty_body}" "${response}" "${admin_token}")"
-expect_http "200" "${approve_code}" "ordinary user approval"
-
-TARGET_PATH="${user_login}" ORDINARY_MOBILE="${ordinary_mobile}" ORDINARY_PASSWORD="${ordinary_password}" "${VENV_DIR}/bin/python" - <<'PY'
-import json
-import os
-from pathlib import Path
-
-Path(os.environ["TARGET_PATH"]).write_text(
-    json.dumps({"username": os.environ["ORDINARY_MOBILE"], "password": os.environ["ORDINARY_PASSWORD"]}, ensure_ascii=False),
-    encoding="utf-8",
-)
-PY
-ordinary_login_code="$(request_json POST "/api/v1/auth/login/password" "${user_login}" "${response}")"
-expect_http "200" "${ordinary_login_code}" "ordinary user login"
-ordinary_token="$(json_field "$(cat "${response}")" "data.access_token")"
-
-ordinary_me_code="$(get_json "/api/v1/auth/me" "${response}" "${ordinary_token}")"
-expect_http "200" "${ordinary_me_code}" "ordinary user me access"
-ordinary_admin_code="$(get_json "/api/v1/admin/users" "${response}" "${ordinary_token}")"
-expect_http "403" "${ordinary_admin_code}" "ordinary user admin list rejection"
-ordinary_settings_code="$(get_json "/api/v1/admin/settings" "${response}" "${ordinary_token}")"
-expect_http "403" "${ordinary_settings_code}" "ordinary user super admin settings rejection"
-
-cat > "${role_update}" <<'JSON'
-{"role_code":"registered_user"}
-JSON
-ordinary_role_code="$(request_json PUT "/api/v1/admin/users/1/role" "${role_update}" "${response}" "${ordinary_token}")"
-expect_http "403" "${ordinary_role_code}" "ordinary user role assignment rejection"
-
-"${VENV_DIR}/bin/python" - "${response}" "${admin_password}" "${ordinary_password}" <<'PY'
-import json
 import sys
-from pathlib import Path
+import time
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
 
-payload = Path(sys.argv[1]).read_text(encoding="utf-8")
-for forbidden in [sys.argv[2], sys.argv[3]]:
-    if forbidden in payload:
+sys.path.insert(0, "apps/api-server")
+from app.core.config import settings
+
+base_url = os.environ["BASE_URL"]
+suffix = str(int(time.time()))
+admin_password = settings.admin_password
+ordinary_password = f"Auth{secrets.token_urlsafe(12)}A1!"
+ordinary_mobile = f"157{suffix[-8:]}"
+ordinary_email = f"auth-{suffix}@example.com"
+responses: list[str] = []
+
+
+def request_json(path: str, method: str = "GET", body: dict | None = None, token: str | None = None, expected: int = 200):
+    data = None if body is None else json.dumps(body).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    request = Request(f"{base_url}{path}", data=data, headers=headers, method=method)
+    try:
+        with urlopen(request, timeout=10) as response:
+            status = response.status
+            text = response.read().decode("utf-8", errors="replace")
+    except HTTPError as exc:
+        status = exc.code
+        text = exc.read().decode("utf-8", errors="replace")
+    responses.append(text)
+    if status != expected:
+        raise SystemExit(f"{method} {path} returned {status}, expected {expected}")
+    return json.loads(text) if text else {}
+
+
+request_json("/api/v1/admin/dashboard", expected=401)
+
+admin_login = request_json(
+    "/api/v1/auth/login/password",
+    method="POST",
+    body={"username": "admin", "password": admin_password},
+)["data"]
+admin_token = admin_login["access_token"]
+
+request_json("/api/v1/admin/dashboard", token=admin_token)
+request_json("/api/v1/admin/settings", token=admin_token)
+
+registration = request_json(
+    "/api/v1/auth/register",
+    method="POST",
+    body={
+        "real_name": "权限边界用户",
+        "organization": "P1-F Smoke Org",
+        "mobile": ordinary_mobile,
+        "email": ordinary_email,
+        "expertise": "成果转化",
+        "password": ordinary_password,
+    },
+)["data"]
+ordinary_user_id = registration["user_id"]
+
+request_json(f"/api/v1/admin/users/{ordinary_user_id}/approve", method="POST", body={}, token=admin_token)
+
+ordinary_login = request_json(
+    "/api/v1/auth/login/password",
+    method="POST",
+    body={"username": ordinary_mobile, "password": ordinary_password},
+)["data"]
+ordinary_token = ordinary_login["access_token"]
+
+request_json("/api/v1/auth/me", token=ordinary_token)
+request_json("/api/v1/admin/users", token=ordinary_token, expected=403)
+request_json("/api/v1/admin/settings", token=ordinary_token, expected=403)
+request_json(
+    "/api/v1/admin/users/1/role",
+    method="PUT",
+    body={"role_code": "registered_user"},
+    token=ordinary_token,
+    expected=403,
+)
+
+serialized = " ".join(responses)
+for forbidden in [admin_password, ordinary_password]:
+    if forbidden in serialized:
         raise SystemExit("permission smoke response contains a raw password")
-try:
-    json.loads(payload)
-except json.JSONDecodeError as exc:
-    raise SystemExit(f"last response was not JSON: {exc}") from exc
 PY
 
 log "auth permission smoke passed"
