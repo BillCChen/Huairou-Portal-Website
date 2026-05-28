@@ -152,3 +152,18 @@ Implementation summary:
 - `nuxt.config.ts` uses a local typed `globalThis.process?.env` reader instead of importing `node:process`.
 - Web API error display uses a centralized typed helper.
 - No backend, admin, database model, or API behavior changed.
+
+## 11. P0-4 API Smoke Skeleton
+
+P0-4 added `scripts/smoke_api_public.sh` and `docs/API_SMOKE_RUNBOOK.md`.
+
+Current state:
+
+| Item | Status | Notes |
+|---|---|---|
+| Public API smoke script | P0-4 added | Covers `/healthz` and selected non-destructive public GET endpoints. |
+| Script syntax check | P0-4 PASS | `bash -n scripts/smoke_api_public.sh`. |
+| Placeholder execution | P0-4 BLOCKED-compatible | `PORTAL_SMOKE_ALLOW_UNAVAILABLE=1 ./scripts/smoke_api_public.sh` exited successfully while reporting a blocked smoke result; current local `/healthz` returned `404`. |
+| Real API smoke | Not run | Requires an already running API service; P0-4 does not start services. |
+
+The allow-unavailable result must not be recorded as a real API smoke PASS. Real smoke validation remains required before release readiness can be marked complete.

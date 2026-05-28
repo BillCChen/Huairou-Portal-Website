@@ -146,3 +146,15 @@ Validation result:
 | Backend compileall | PASS |
 
 The remaining Vue language plugin warning does not currently fail `pnpm check:web`.
+
+## 12. P0-4 API Smoke Skeleton
+
+P0-4 added a public API smoke skeleton.
+
+| Check | Result | Notes |
+|---|---|---|
+| `bash -n scripts/smoke_api_public.sh` | PASS | Script syntax check passed. |
+| `PORTAL_SMOKE_ALLOW_UNAVAILABLE=1 ./scripts/smoke_api_public.sh` | BLOCKED | Does not start API service; current local endpoint returned `404` for `/healthz`, so this is not a real smoke PASS. |
+| Real API smoke | NOT RUN | Requires a running API service. |
+
+The P0 smoke script covers only non-destructive public GET endpoints and does not test auth, admin, uploads, writes, or slug-dependent detail routes.
