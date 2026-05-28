@@ -45,3 +45,6 @@ gitleaks-report.*
 trufflehog*.json
 secret-scan-results/
 *.sarif
+
+# Local Claude settings
+.claude/settings.local.json
