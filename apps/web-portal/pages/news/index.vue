@@ -83,7 +83,7 @@ const sidebarItems = computed(() => [
       </div>
 
       <div v-else-if="error" class="news-error">
-        {{ error.data?.message || error.data?.detail || error.message || "新闻加载失败" }}
+        {{ getPortalErrorMessage(error, "新闻加载失败") }}
       </div>
 
       <div v-else-if="!(data?.items || []).length" class="news-empty">

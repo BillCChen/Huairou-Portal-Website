@@ -424,7 +424,7 @@ useSeoMeta({
           <div class="news-list-wrap">
             <div v-if="pending" class="news-state">正在加载中…</div>
             <div v-else-if="error" class="news-state news-state--error">
-              {{ error.data?.message || error.data?.detail || error.message || "新闻加载失败" }}
+              {{ getPortalErrorMessage(error, "新闻加载失败") }}
             </div>
             <template v-else>
               <article

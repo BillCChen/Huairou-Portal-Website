@@ -77,7 +77,7 @@ const selectCategory = async (slug = "") => {
       </div>
     </div>
     <div v-else-if="error" class="card" style="margin-top: 24px; padding: 24px; color: #b91c1c;">
-      {{ error.data?.message || error.data?.detail || error.message || "案例加载失败" }}
+      {{ getPortalErrorMessage(error, "案例加载失败") }}
     </div>
     <div v-else-if="!(data?.items || []).length" class="card" style="margin-top: 24px; padding: 24px; color: var(--muted);">
       暂无案例

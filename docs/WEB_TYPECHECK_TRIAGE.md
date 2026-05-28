@@ -112,3 +112,32 @@ For the `process` error, apply the smallest config-compatible typing fix in the 
 - No API behavior change.
 - No database/model change.
 - No dependency installation.
+
+## 8. P0-3e Execution Result
+
+P0-3e implemented the recommended centralized error-message helper and minimal Nuxt config typing fix.
+
+| Check | Result | Notes |
+|---|---|---|
+| `pnpm check:web` | PASS | The command exits 0. The previous `process` and `message/detail` TypeScript errors are resolved. A Vue language plugin warning remains but does not fail the command. |
+| `pnpm build:web` | PASS | Production build remains valid. |
+| `pnpm check:admin` | PASS | Admin typecheck remains valid. |
+| `pnpm build:admin` | PASS | Admin build remains valid, with the existing chunk-size warning. |
+| Backend compileall | PASS | Python compileall remains valid. |
+| `portal_min_acceptance.sh` | Pending post-commit | The script requires a clean tree and will be run after committing this change. |
+
+Implementation notes:
+
+- The centralized error-message helper was added in `apps/web-portal/composables/usePortalApi.ts`.
+- Repeated page-level `message/detail` access was replaced by the typed helper.
+- `nuxt.config.ts` does not import `node:process` and does not require `@types/node`.
+- `nuxt.config.ts` now uses a local typed `globalThis.process?.env` reader for `NUXT_PUBLIC_API_BASE`.
+
+Business behavior constraints:
+
+- No API routes changed.
+- No backend code changed.
+- No admin code changed.
+- No database model changed.
+- No page layout/style changed.
+- Error display now uses a typed helper rather than direct access to unknown error payloads.

@@ -18,7 +18,7 @@ useSeoMeta({
     <p class="section-desc">当前页面已接入研究所模型与详情路由，公开深度和固定数量仍可在确认后调整。</p>
     <div v-if="pending" class="card" style="margin-top: 24px; padding: 24px; color: var(--muted);">正在加载研究所信息。</div>
     <div v-else-if="error" class="card" style="margin-top: 24px; padding: 24px; color: #b91c1c;">
-      {{ error.data?.message || error.data?.detail || error.message || "研究所信息加载失败" }}
+      {{ getPortalErrorMessage(error, "研究所信息加载失败") }}
     </div>
     <div v-else-if="!(data || []).length" class="card" style="margin-top: 24px; padding: 24px; color: var(--muted);">
       暂无研究所信息，敬请期待

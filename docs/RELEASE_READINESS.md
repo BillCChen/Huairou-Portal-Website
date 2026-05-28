@@ -132,3 +132,23 @@ Current status:
 | `pnpm check:web` | FAIL | Typecheck entrypoint is valid, but 9 TS errors remain. Main categories are missing Nuxt config Node typing and unsafe `error.data.message/detail` access in pages. |
 | Web typecheck triage | DONE | Errors were classified without changing business source code. |
 | Recommended next step | P0-3e | Repair type errors only after explicit authorization. Recommended strategy is centralized API error typing plus a minimal Nuxt config typing fix. |
+
+## 10. P0-3e Web Typecheck Fix
+
+P0-3e resolved the blocking web typecheck errors without changing backend, admin, database model, API route, or page layout/style behavior.
+
+Current status:
+
+| Check | Status | Notes |
+|---|---|---|
+| `pnpm check:web` | P0-3e PASS | Previous `process` and `message/detail` TypeScript errors are resolved. A Vue language plugin warning remains non-blocking. |
+| `pnpm build:web` | P0-3e PASS | Production build remains valid. |
+| `pnpm check:admin` | P0-3e PASS | Admin typecheck remains valid. |
+| `pnpm build:admin` | P0-3e PASS | Admin build remains valid. |
+| Backend compileall | P0-3e PASS | Backend static compile check remains valid. |
+
+Implementation summary:
+
+- `nuxt.config.ts` uses a local typed `globalThis.process?.env` reader instead of importing `node:process`.
+- Web API error display uses a centralized typed helper.
+- No backend, admin, database model, or API behavior changed.

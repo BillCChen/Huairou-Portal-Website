@@ -128,3 +128,21 @@ No page, component, composable, API, database model, or business behavior was mo
 See `docs/WEB_TYPECHECK_TRIAGE.md`.
 
 P0-3d did not modify business source code. It classified the current `pnpm check:web` failures and proposed non-executed repair strategies.
+
+## 11. P0-3e Web Typecheck Fix
+
+See `docs/WEB_TYPECHECK_TRIAGE.md`.
+
+P0-3e addressed the current web typecheck failures by applying a minimal Nuxt config typing fix and centralized API error-message helper.
+
+Validation result:
+
+| Check | Result |
+|---|---|
+| `pnpm check:web` | PASS |
+| `pnpm build:web` | PASS |
+| `pnpm check:admin` | PASS |
+| `pnpm build:admin` | PASS |
+| Backend compileall | PASS |
+
+The remaining Vue language plugin warning does not currently fail `pnpm check:web`.
