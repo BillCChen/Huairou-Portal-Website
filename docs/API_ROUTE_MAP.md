@@ -69,9 +69,9 @@
 
 - 缺统一业务错误码。
 - 文档中响应 `code` 口径与代码可能不一致。
-- 缺完整认证 API smoke 脚本；P1-B 已增加邮箱密码重置后端 smoke。
-- 缺权限矩阵测试；P1-D 已增加用户生命周期后端 smoke。
-- V1 内容 CMS 已有 `scripts/smoke_v1_content_backend.sh`；P1-F 仍需汇总验收报告。
+- 认证 API smoke 已覆盖邮箱密码重置后端基础、用户生命周期和 P1-F auth/permission 边界。
+- 完整细粒度权限矩阵仍需后续硬化；P1-F 已覆盖 anonymous、ordinary user、admin、super-admin 的核心 admin API 边界。
+- V1 内容 CMS 已有 `scripts/smoke_v1_content_backend.sh`，并由 `scripts/run_v1_acceptance.sh` 纳入 V1 汇总验收。
 - 缺文件下载门禁接口。
 - 缺邮箱密码重置完整链接 UAT；前端页面已在 P1-C 接入。
 - 缺全站搜索接口。

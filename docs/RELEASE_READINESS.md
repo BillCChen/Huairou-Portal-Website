@@ -46,6 +46,7 @@
 - P1-C 已实现邮箱密码重置前端基础：`/forgot-password`、`/password-reset/confirm?token=...`、登录页找回密码入口和前端 API client。真实 SMTP UAT 和 full-link UAT 仍未执行。
 - P1-D 已实现用户生命周期闭环基础：审核通过/驳回、禁用/启用、机构用户创建、角色分配、后台 UI 和 user lifecycle smoke。
 - P1-E 已实现 V1 内容 CMS 验收闭环：首页聚合、新闻、案例、关于我们、领导团队、Banner、分类/标签、站点设置和 V1 content smoke。
+- P1-F 已新增 V1 总验收入口、auth/permission smoke、V1 验收清单和验收报告。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
 
@@ -59,6 +60,8 @@ P0-2 新增以下最小验收脚本：
 | `scripts/check_secrets_basic.sh` | 对已跟踪文本做基础 secret-like pattern 扫描；不能替代 gitleaks/trufflehog |
 | `scripts/extract_api_routes.py` | 从 FastAPI 路由源码提取 API route map，并生成 `docs/API_ROUTE_MAP.generated.md` |
 | `scripts/portal_min_acceptance.sh` | 最小验收入口，串联 git clean 检查、forbidden artifact、basic secret scan 和 API route map extraction |
+| `scripts/run_v1_acceptance.sh` | V1 总验收入口，编排前台/后台静态检查、后端 compileall、公共 API smoke、密码重置 smoke、用户生命周期 smoke、权限 smoke、内容 smoke 和仓库卫生检查 |
+| `scripts/smoke_auth_permission_backend.sh` | 本地隔离运行的认证/权限边界 smoke，验证 anonymous、ordinary user、admin、super-admin 的 admin API 访问边界 |
 
 运行方式：
 
@@ -67,6 +70,7 @@ P0-2 新增以下最小验收脚本：
 ./scripts/check_secrets_basic.sh
 python3 scripts/extract_api_routes.py
 ./scripts/portal_min_acceptance.sh
+PORTAL_BACKEND_PYTHON=python3.11 ./scripts/run_v1_acceptance.sh
 ```
 
 当前边界：
@@ -74,6 +78,8 @@ python3 scripts/extract_api_routes.py
 - P0-2 不验证业务正确性。
 - P0-2 不替代后端 pytest、前端 build、E2E、安全扫描、性能压测。
 - P0-2 只建立最低限度的仓库卫生和 API 路由可见性检查。
+
+P1-F 的 `scripts/run_v1_acceptance.sh` 是 V1 合同验收汇总入口，但仍不替代真实性能压测、外部安全扫描、真实 SMTP full-link UAT、Kubernetes 验收或 V2 业务验收。
 
 ## 6. P0-3 First Validation Run
 

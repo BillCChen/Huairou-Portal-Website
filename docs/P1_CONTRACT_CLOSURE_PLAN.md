@@ -15,7 +15,7 @@ P1 uses the P0 baseline as an admission gate and narrows the account scope accor
 | P1-C | Email password reset frontend | yes | forgot/reset confirm pages completed; full-link UAT remains later |
 | P1-D | User approval/institution user/role closure | yes | completed: reject/disable/enable/create/assign |
 | P1-E | V1 content CMS acceptance closure | yes | completed: homepage/news/cases/about/leaders/banners/categories/tags |
-| P1-F | V1 smoke tests and acceptance docs | scripts/docs | consolidate public/auth/admin/permission smoke evidence |
+| P1-F | V1 smoke tests and acceptance docs | scripts/docs | completed: V1 acceptance runner, auth/permission smoke, checklist, report |
 | P1-G | P1 merge readiness | docs/scripts | final validation and tag |
 
 ## 3. Excluded From P1
@@ -142,4 +142,24 @@ Not included:
 
 ## 10. Next Recommended Stage
 
-P1-F: consolidate P1 public/auth/admin smoke tests and acceptance documentation before merge readiness.
+P1-G: merge readiness, final validation, and release candidate tagging. Do not enter V2 business modules until P1 is merged and explicitly accepted.
+
+## 11. P1-F Completion Boundary
+
+P1-F consolidates Portal V1 acceptance evidence without changing business behavior.
+
+Completed:
+
+- `scripts/run_v1_acceptance.sh` as the single V1 acceptance runner.
+- `scripts/smoke_auth_permission_backend.sh` for anonymous, ordinary-user, admin, and super-admin permission boundaries.
+- V1 acceptance checklist in `docs/P1_V1_ACCEPTANCE_CHECKLIST.md`.
+- V1 acceptance report in `docs/P1_V1_ACCEPTANCE_REPORT.md`.
+- Release readiness and route-map documentation updates.
+
+Not included:
+
+- V2 talent/expert/event/search/recommendation/statistics systems.
+- Real SMTP full-link UAT.
+- Real SMS provider or SMS login acceptance.
+- SSO.
+- Production performance or external security reports.
