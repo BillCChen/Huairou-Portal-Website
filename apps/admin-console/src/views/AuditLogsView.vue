@@ -41,7 +41,7 @@ onMounted(load);
       <el-table-column prop="module" label="模块" min-width="140" />
       <el-table-column prop="action" label="动作" width="120" />
       <el-table-column prop="object_type" label="对象类型" min-width="140" />
-      <el-table-column prop="user_id" label="用户 ID" width="100" />
+      <el-table-column prop="user_id" label="用户编号" width="100" />
     </el-table>
 
     <div style="display: flex; justify-content: flex-end; margin-top: 20px;">

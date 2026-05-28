@@ -24,9 +24,19 @@ const load = async () => {
 };
 
 const approve = async (id: number) => {
-  await unwrap(api.post(`/admin/users/${id}/approve`, { review_comment: "Approved by CMS" }));
+  await unwrap(api.post(`/admin/users/${id}/approve`, { review_comment: "管理员审批通过" }));
   ElMessage.success("审核通过");
   await load();
+};
+
+const statusLabel = (status: string) => {
+  const labelMap: Record<string, string> = {
+    pending: "待审核",
+    active: "已启用",
+    disabled: "已禁用",
+    inactive: "未启用",
+  };
+  return labelMap[status] || status;
 };
 
 const handleFilterChange = async () => {
@@ -56,7 +66,11 @@ onMounted(load);
       <el-table-column prop="organization" label="单位" min-width="220" />
       <el-table-column prop="mobile" label="手机号" min-width="160" />
       <el-table-column prop="expertise" label="专业领域" min-width="180" />
-      <el-table-column prop="status" label="状态" width="120" />
+      <el-table-column label="状态" width="120">
+        <template #default="{ row }">
+          {{ statusLabel(row.status) }}
+        </template>
+      </el-table-column>
       <el-table-column label="操作" width="140">
         <template #default="{ row }">
           <el-button v-if="row.status === 'pending'" type="primary" size="small" @click="approve(row.id)">

@@ -65,7 +65,7 @@ const submit = async () => {
   try {
     directions = JSON.parse(form.directionsText || "[]");
   } catch {
-    ElMessage.error("Directions JSON 格式无效");
+    ElMessage.error("方向配置格式无效");
     return;
   }
 
@@ -94,6 +94,14 @@ const submit = async () => {
   await load();
 };
 
+const instituteStatusText = (status: string) => {
+  const map: Record<string, string> = {
+    published: "已发布",
+    hidden: "隐藏",
+  };
+  return map[status] || status;
+};
+
 onMounted(load);
 </script>
 
@@ -109,8 +117,12 @@ onMounted(load);
 
     <el-table :data="rows" v-loading="loading" style="margin-top: 24px;">
       <el-table-column prop="name" label="名称" min-width="220" />
-      <el-table-column prop="slug" label="Slug" min-width="180" />
-      <el-table-column prop="status" label="状态" width="120" />
+      <el-table-column prop="slug" label="标识" min-width="180" />
+      <el-table-column label="状态" width="120">
+        <template #default="{ row }">
+          {{ instituteStatusText(row.status) }}
+        </template>
+      </el-table-column>
       <el-table-column prop="sort_order" label="排序" width="100" />
       <el-table-column label="操作" width="120">
         <template #default="{ row }">
@@ -121,25 +133,25 @@ onMounted(load);
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑内容' : '新建内容'" width="760">
       <el-form label-position="top">
-        <el-form-item label="Name">
+        <el-form-item label="名称">
           <el-input v-model="form.name" />
         </el-form-item>
-        <el-form-item label="Slug">
+        <el-form-item label="标识">
           <el-input v-model="form.slug" />
         </el-form-item>
-        <el-form-item label="Intro">
+        <el-form-item label="简介">
           <el-input v-model="form.intro" type="textarea" :rows="4" />
         </el-form-item>
-        <el-form-item label="Directions JSON">
+        <el-form-item label="方向配置">
           <el-input v-model="form.directionsText" type="textarea" :rows="8" />
         </el-form-item>
-        <el-form-item label="Status">
+        <el-form-item label="状态">
           <el-select v-model="form.status" style="width: 100%;">
-            <el-option label="Hidden" value="hidden" />
-            <el-option label="Published" value="published" />
+            <el-option label="隐藏" value="hidden" />
+            <el-option label="已发布" value="published" />
           </el-select>
         </el-form-item>
-        <el-form-item label="Sort Order">
+        <el-form-item label="排序">
           <el-input-number v-model="form.sort_order" :min="0" />
         </el-form-item>
       </el-form>

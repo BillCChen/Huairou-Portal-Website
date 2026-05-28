@@ -540,8 +540,11 @@ def admin_update_case(case_id: int, payload: CaseIn, current_user: User = Depend
 
 
 @router.get(f"{settings.api_prefix}/admin/pages", response_model=APIResponse)
-def admin_list_pages(_: User = Depends(require_admin), db: Session = Depends(get_db)):
-    return APIResponse(data=encode(db.scalars(select(Page).order_by(Page.page_key.asc())).all()))
+def admin_list_pages(page_key: str | None = None, _: User = Depends(require_admin), db: Session = Depends(get_db)):
+    query = select(Page).order_by(Page.page_key.asc(), Page.id.asc())
+    if page_key:
+        query = query.where(Page.page_key == page_key)
+    return APIResponse(data=encode(db.scalars(query).all()))
 
 
 @router.post(f"{settings.api_prefix}/admin/pages", response_model=APIResponse)

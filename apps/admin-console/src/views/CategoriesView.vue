@@ -41,6 +41,15 @@ const load = async () => {
   }
 };
 
+const categoryTypeText = (type: string) => {
+  const map: Record<string, string> = {
+    article: "新闻",
+    case: "案例",
+    download: "下载",
+  };
+  return map[type] || type;
+};
+
 const resetForm = () => {
   form.name = "";
   form.slug = "";
@@ -98,8 +107,12 @@ onMounted(load);
 
     <el-table :data="rows" v-loading="loading" style="margin-top: 24px;">
       <el-table-column prop="name" label="标题" min-width="180" />
-      <el-table-column prop="slug" label="Slug" min-width="180" />
-      <el-table-column prop="type" label="类型" width="140" />
+      <el-table-column prop="slug" label="标识" min-width="180" />
+      <el-table-column prop="type" label="类型" width="140">
+        <template #default="{ row }">
+          {{ categoryTypeText(row.type) }}
+        </template>
+      </el-table-column>
       <el-table-column label="启用" width="100">
         <template #default="{ row }">
           {{ row.enabled ? "是" : "否" }}
@@ -114,20 +127,20 @@ onMounted(load);
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑内容' : '新建内容'" width="640">
       <el-form label-position="top">
-        <el-form-item label="Name">
+        <el-form-item label="名称">
           <el-input v-model="form.name" />
         </el-form-item>
-        <el-form-item label="Slug">
+        <el-form-item label="标识">
           <el-input v-model="form.slug" @input="slugTouched = true" />
         </el-form-item>
-        <el-form-item label="Type">
+        <el-form-item label="类型">
           <el-select v-model="form.type" style="width: 100%;">
-            <el-option label="Article" value="article" />
-            <el-option label="Case" value="case" />
-            <el-option label="Download" value="download" />
+            <el-option label="新闻" value="article" />
+            <el-option label="案例" value="case" />
+            <el-option label="下载" value="download" />
           </el-select>
         </el-form-item>
-        <el-form-item label="Parent">
+        <el-form-item label="上级分类">
           <el-select v-model="form.parent_id" clearable style="width: 100%;">
             <el-option
               v-for="item in rows.filter((item) => item.id !== editingId)"
@@ -137,10 +150,10 @@ onMounted(load);
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="Sort Order">
+        <el-form-item label="排序">
           <el-input-number v-model="form.sort_order" :min="0" />
         </el-form-item>
-        <el-form-item label="Enabled">
+        <el-form-item label="启用">
           <el-switch v-model="form.enabled" />
         </el-form-item>
       </el-form>

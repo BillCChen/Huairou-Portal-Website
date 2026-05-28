@@ -114,6 +114,7 @@ class BannerIn(BaseModel):
     button_text: str | None = None
     button_url: str | None = None
     image_file_id: int | None = None
+    tag: str | None = "院内新闻"
     sort_order: int = 0
     is_enabled: bool = True
 

@@ -121,28 +121,28 @@ onMounted(load);
 
     <el-dialog v-model="dialogVisible" :title="editingId ? '编辑内容' : '新建内容'" width="720">
       <el-form label-position="top">
-        <el-form-item label="Name">
+        <el-form-item label="姓名">
           <el-input v-model="form.name" />
         </el-form-item>
-        <el-form-item label="Title">
+        <el-form-item label="职务">
           <el-input v-model="form.title" />
         </el-form-item>
-        <el-form-item label="Photo">
+        <el-form-item label="照片">
           <div style="display: flex; gap: 12px;">
             <el-upload :auto-upload="false" :show-file-list="false" :on-change="onFileChange">
               <el-button>选择文件</el-button>
             </el-upload>
             <el-button :loading="uploading" @click="uploadPhoto">上传</el-button>
-            <span style="color: #64748b;">{{ form.photo_file_id ? `文件 ID: ${form.photo_file_id}` : "未上传" }}</span>
+            <span style="color: #64748b;">{{ form.photo_file_id ? `文件编号：${form.photo_file_id}` : "未上传" }}</span>
           </div>
         </el-form-item>
-        <el-form-item label="Intro">
+        <el-form-item label="简介">
           <el-input v-model="form.intro" type="textarea" :rows="4" />
         </el-form-item>
-        <el-form-item label="Sort Order">
+        <el-form-item label="排序">
           <el-input-number v-model="form.sort_order" :min="0" />
         </el-form-item>
-        <el-form-item label="Visible">
+        <el-form-item label="显示">
           <el-switch v-model="form.is_visible" />
         </el-form-item>
       </el-form>

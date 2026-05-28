@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
 
 from app.api.routes import router
 from app.core.config import settings
@@ -12,9 +13,22 @@ from app.schemas import APIResponse
 from app.db.session import Base, SessionLocal, engine
 
 
+def ensure_banner_tag_column():
+    if not settings.database_url.startswith("sqlite"):
+        return
+    with engine.connect() as conn:
+        rows = conn.execute(text("PRAGMA table_info(banners)")).fetchall()
+    has_tag = any(row[1] == "tag" for row in rows)
+    if has_tag:
+        return
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE banners ADD COLUMN tag VARCHAR(50)"))
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     Base.metadata.create_all(bind=engine)
+    ensure_banner_tag_column()
     if settings.init_sample_data:
         with SessionLocal() as session:
             seed_database(session)

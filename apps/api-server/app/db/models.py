@@ -200,6 +200,7 @@ class Banner(TimestampMixin, Base):
     image_file_id: Mapped[int | None] = mapped_column(ForeignKey("files.id"))
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    tag: Mapped[str | None] = mapped_column(String(50))
 
 
 class SiteSetting(TimestampMixin, Base):

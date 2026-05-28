@@ -20,7 +20,7 @@ const updateJsonValue = (row: any, value: string) => {
   try {
     row.setting_value = JSON.parse(value);
   } catch {
-    ElMessage.error("JSON 格式无效");
+    ElMessage.error("数据格式无效");
   }
 };
 
@@ -34,9 +34,9 @@ onMounted(load);
       <div style="margin-top: 8px; color: #64748b;">首页统计卡片、快速入口、页脚和联系方式统一通过配置管理。</div>
     </div>
     <el-table :data="settings" style="margin-top: 24px;">
-      <el-table-column prop="setting_key" label="Key" min-width="220" />
-      <el-table-column prop="group_name" label="Group" width="140" />
-      <el-table-column label="Value" min-width="420">
+      <el-table-column prop="setting_key" label="键" min-width="220" />
+      <el-table-column prop="group_name" label="分组" width="140" />
+      <el-table-column label="数值" min-width="420">
         <template #default="{ row }">
           <el-input
             :model-value="JSON.stringify(row.setting_value, null, 2)"

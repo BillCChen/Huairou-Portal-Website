@@ -45,7 +45,7 @@ onMounted(load);
     </div>
     <el-table :data="files" style="margin-top: 24px;">
       <el-table-column prop="origin_name" label="文件名" min-width="240" />
-      <el-table-column prop="mime_type" label="MIME" min-width="180" />
+      <el-table-column prop="mime_type" label="文件类型" min-width="180" />
       <el-table-column prop="size" label="大小" width="120" />
       <el-table-column prop="storage_path" label="存储路径" min-width="220" />
     </el-table>

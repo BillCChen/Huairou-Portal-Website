@@ -13,8 +13,8 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     secret_key: str = "change-this-in-production"
     access_token_expire_minutes: int = 60 * 8
-    database_url: str = f"sqlite:///{(DATA_DIR / 'portal.db').as_posix()}"
-    cors_origins: str = "http://localhost:3100,http://localhost:5174"
+    database_url: str = f"sqlite:///{(DATA_DIR / 'portal_test.db').as_posix()}"
+    cors_origins: str = "http://localhost:3100,http://127.0.0.1:3100,http://localhost:5174,http://127.0.0.1:5174"
     storage_root: str = str(DATA_DIR / "files")
     upload_dir: str = "uploads"
     export_dir: str = "exports"
@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     backup_dir: str = "backup"
     admin_username: str = "admin"
     admin_password: str = "ChangeMe123!"
-    admin_real_name: str = "System Administrator"
+    admin_real_name: str = "系统管理员"
     sms_test_code: str = "123456"
     init_sample_data: bool = True
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
