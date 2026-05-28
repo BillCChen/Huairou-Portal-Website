@@ -122,3 +122,9 @@ Current `pnpm check:web` errors are now real type-checking findings, not the pre
   - `pages/news/index.vue`
 
 No page, component, composable, API, database model, or business behavior was modified in P0-3c.
+
+## 10. P0-3d Web Typecheck Triage
+
+See `docs/WEB_TYPECHECK_TRIAGE.md`.
+
+P0-3d did not modify business source code. It classified the current `pnpm check:web` failures and proposed non-executed repair strategies.

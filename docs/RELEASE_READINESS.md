@@ -120,3 +120,15 @@ Current status:
 | `portal_min_acceptance.sh` | PASS after clean commit | The script requires a clean tree and should be run after committing intended config/doc changes. |
 
 Next recommended follow-up: `P0-3d Web Typecheck Error Triage`. Do not mark `pnpm check:web` as a passing gate until those TypeScript findings are resolved or explicitly scoped.
+
+## 9. P0-3d Web Typecheck Triage
+
+P0-3d completed triage for the current `pnpm check:web` failures. See `docs/WEB_TYPECHECK_TRIAGE.md`.
+
+Current status:
+
+| Check | Status | Notes |
+|---|---|---|
+| `pnpm check:web` | FAIL | Typecheck entrypoint is valid, but 9 TS errors remain. Main categories are missing Nuxt config Node typing and unsafe `error.data.message/detail` access in pages. |
+| Web typecheck triage | DONE | Errors were classified without changing business source code. |
+| Recommended next step | P0-3e | Repair type errors only after explicit authorization. Recommended strategy is centralized API error typing plus a minimal Nuxt config typing fix. |
