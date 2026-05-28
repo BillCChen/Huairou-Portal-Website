@@ -43,3 +43,29 @@
 - `SiteHeader.vue` 中的本地 Achievement 地址只能作为演示入口，不能作为生产第三方系统对接。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
+
+## 5. P0-2 Minimal Acceptance Scripts
+
+P0-2 新增以下最小验收脚本：
+
+| 脚本 | 用途 |
+|---|---|
+| `scripts/check_forbidden_artifacts.sh` | 检查已跟踪文件中是否误提交 runtime logs、outputs、真实 env、本地数据库、构建产物等禁止产物 |
+| `scripts/check_secrets_basic.sh` | 对已跟踪文本做基础 secret-like pattern 扫描；不能替代 gitleaks/trufflehog |
+| `scripts/extract_api_routes.py` | 从 FastAPI 路由源码提取 API route map，并生成 `docs/API_ROUTE_MAP.generated.md` |
+| `scripts/portal_min_acceptance.sh` | 最小验收入口，串联 git clean 检查、forbidden artifact、basic secret scan 和 API route map extraction |
+
+运行方式：
+
+```bash
+./scripts/check_forbidden_artifacts.sh
+./scripts/check_secrets_basic.sh
+python3 scripts/extract_api_routes.py
+./scripts/portal_min_acceptance.sh
+```
+
+当前边界：
+
+- P0-2 不验证业务正确性。
+- P0-2 不替代后端 pytest、前端 build、E2E、安全扫描、性能压测。
+- P0-2 只建立最低限度的仓库卫生和 API 路由可见性检查。
