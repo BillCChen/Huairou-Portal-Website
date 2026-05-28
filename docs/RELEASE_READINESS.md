@@ -167,3 +167,20 @@ Current state:
 | Real API smoke | Not run | Requires an already running API service; P0-4 does not start services. |
 
 The allow-unavailable result must not be recorded as a real API smoke PASS. Real smoke validation remains required before release readiness can be marked complete.
+
+## 12. P0-5 Real Public API Smoke
+
+Public API smoke status: P0-5 PASS.
+
+Evidence:
+
+| Check | Status | Notes |
+|---|---|---|
+| Compatible runtime | PASS | Python 3.11.15 from `/Users/billchen/.local/bin/python3.11` |
+| Isolated backend venv | PASS | `.runtime-logs/p0-5/backend-venv-py311/`, ignored and not committed |
+| Dependency installation | PASS | Installed only `apps/api-server/requirements.txt` |
+| Local API startup | PASS | API started on `127.0.0.1:18200` with runtime SQLite and uploads under `.runtime-logs/p0-5/` |
+| Real public API smoke | PASS | `PORTAL_API_BASE=http://127.0.0.1:18200 ./scripts/smoke_api_public.sh` |
+| Post-smoke validation | PASS | Minimal acceptance, web check/build, admin check/build, and backend compileall all passed |
+
+Remaining release gaps are unchanged: auth smoke, admin RBAC smoke, file upload/download security smoke, performance testing, security scanning, and production deployment validation are still required later.

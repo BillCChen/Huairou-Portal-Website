@@ -158,3 +158,33 @@ P0-4 added a public API smoke skeleton.
 | Real API smoke | NOT RUN | Requires a running API service. |
 
 The P0 smoke script covers only non-destructive public GET endpoints and does not test auth, admin, uploads, writes, or slug-dependent detail routes.
+
+## 13. P0-5 Real Local API Smoke
+
+P0-5 attempted real local public API smoke in controlled runtime environments.
+
+| Attempt | Python | Result | Reason |
+|---|---|---|---|
+| P0-5 | default `python3` | BLOCKED | `uvicorn` not available |
+| P0-5a | Python 3.14 | BLOCKED | `psycopg[binary]==3.2.9` did not resolve for Python 3.14 |
+| P0-5b | Python 3.12.11 | BLOCKED | `venv` creation failed at `ensurepip` |
+| P0-5c | Python 3.11.15 | PASS | Isolated venv started the API on `127.0.0.1:18200` and real public API smoke passed |
+
+P0-5c result table:
+
+| Check | Result | Notes |
+|---|---|---|
+| Python 3.11 discovery | PASS | `/Users/billchen/.local/bin/python3.11`, Python 3.11.15 |
+| Isolated backend venv | PASS | `.runtime-logs/p0-5/backend-venv-py311/` |
+| Dependency installation | PASS | Installed only `apps/api-server/requirements.txt` into the ignored runtime venv |
+| API startup on 18200 | PASS | Started with isolated SQLite DB and uploads under `.runtime-logs/p0-5/` |
+| `GET /healthz` | PASS | Returned `{"code":200,"message":"ok","data":{"status":"ok"}}` |
+| Real public API smoke | PASS | `PORTAL_API_BASE=http://127.0.0.1:18200 ./scripts/smoke_api_public.sh` |
+| `portal_min_acceptance.sh` | PASS | Minimal repository gate still passes |
+| `pnpm check:web` | PASS | Existing Vue language plugin warning remains non-blocking |
+| `pnpm build:web` | PASS | Build completed successfully |
+| `pnpm check:admin` | PASS | Typecheck completed successfully |
+| `pnpm build:admin` | PASS | Build completed with existing chunk-size warning |
+| Backend compileall | PASS | Ran with the Python 3.11 isolated venv |
+
+Runtime artifacts were written only under `.runtime-logs/p0-5/` and were not committed. The local API process started for P0-5c was stopped after the smoke run.

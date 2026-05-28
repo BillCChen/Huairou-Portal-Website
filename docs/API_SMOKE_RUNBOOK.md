@@ -81,3 +81,26 @@ Later stages should add:
 * file upload/download security smoke;
 * inquiry POST smoke using isolated test data;
 * Docker compose local acceptance smoke.
+
+## 9. P0-5 Local Real Smoke Record
+
+P0-5 validated that `allow-unavailable` is only a placeholder mode and not a real PASS. Real public API smoke requires a running Portal API service.
+
+Runtime attempts:
+
+| Attempt | Runtime | Result | Notes |
+|---|---|---|---|
+| P0-5 | default `python3` | BLOCKED | `uvicorn` was not installed in the system Python environment. |
+| P0-5a | Python 3.14 | BLOCKED | `psycopg[binary]==3.2.9` could not resolve a compatible `psycopg-binary==3.2.9` wheel. |
+| P0-5b | Python 3.12.11 | BLOCKED | `python3.12 -m venv` failed at `ensurepip`. |
+| P0-5c | Python 3.11.15 | PASS | Isolated venv under `.runtime-logs/p0-5/backend-venv-py311/` installed only `apps/api-server/requirements.txt`. |
+
+P0-5c command used for real smoke:
+
+```bash
+PORTAL_API_BASE=http://127.0.0.1:18200 ./scripts/smoke_api_public.sh
+```
+
+Result: real public API smoke PASS against the controlled local API instance on `127.0.0.1:18200`.
+
+Runtime artifacts were kept under `.runtime-logs/p0-5/` and must not be committed.
