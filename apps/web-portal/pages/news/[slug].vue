@@ -27,12 +27,16 @@ useSeoMeta({
 <template>
   <div class="container list-page">
     <article class="card" style="padding: 34px;">
-      <div class="badge">{{ article?.source || "研究院新闻" }}</div>
+      <div class="badge">{{ article?.category_name || article?.source || "研究院新闻" }}</div>
       <h1 style="font-size: clamp(34px, 5vw, 52px); margin: 18px 0 0;">{{ article?.title }}</h1>
       <div style="display: flex; gap: 18px; flex-wrap: wrap; margin-top: 18px; color: var(--muted);">
         <span>{{ article?.author }}</span>
+        <span>{{ article?.source }}</span>
         <span>{{ article?.publish_at?.slice?.(0, 10) }}</span>
       </div>
+      <p v-if="article?.summary" style="margin-top: 22px; color: var(--muted); line-height: 1.8; font-size: 16px;">
+        {{ article.summary }}
+      </p>
       <div class="rich-content" style="margin-top: 28px;" v-html="article?.content_html" />
     </article>
 

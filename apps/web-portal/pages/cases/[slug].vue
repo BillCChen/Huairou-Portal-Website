@@ -36,9 +36,10 @@ useSeoMeta({
       <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px;">
         <span v-for="highlight in caseItem?.highlights || []" :key="highlight" class="badge">{{ highlight }}</span>
       </div>
+      <div style="font-size: 20px; font-weight: 700; margin-top: 28px;">项目介绍</div>
       <div class="rich-content" style="margin-top: 28px;" v-html="caseItem?.content_html" />
       <div v-if="caseItem?.benefits" class="card" style="margin-top: 24px; padding: 22px; background: #f8fbff;">
-        <div style="font-size: 20px; font-weight: 700;">成果成效</div>
+        <div style="font-size: 20px; font-weight: 700;">经济效益与成果成效</div>
         <div style="margin-top: 12px; color: var(--muted); line-height: 1.8;">{{ caseItem.benefits }}</div>
       </div>
     </article>

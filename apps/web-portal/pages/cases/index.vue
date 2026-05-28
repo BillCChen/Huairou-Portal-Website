@@ -89,6 +89,10 @@ const selectCategory = async (slug = "") => {
           <NuxtLink :to="`/cases/${item.slug}`">{{ item.title }}</NuxtLink>
         </h2>
         <p style="color: var(--muted); line-height: 1.8;">{{ item.summary }}</p>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; color: var(--muted); font-size: 13px;">
+          <span>合作方：{{ item.partner_name || "待维护" }}</span>
+          <span>阶段：{{ item.stage || "待维护" }}</span>
+        </div>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
           <span v-for="highlight in item.highlights || []" :key="highlight" class="badge">{{ highlight }}</span>
         </div>

@@ -45,6 +45,7 @@
 - P1-B 已实现邮箱密码重置后端基础：email/username request、hash-only token、expiry、consumed/reuse rejection、dev outbox/disabled provider boundary 和后端 smoke。
 - P1-C 已实现邮箱密码重置前端基础：`/forgot-password`、`/password-reset/confirm?token=...`、登录页找回密码入口和前端 API client。真实 SMTP UAT 和 full-link UAT 仍未执行。
 - P1-D 已实现用户生命周期闭环基础：审核通过/驳回、禁用/启用、机构用户创建、角色分配、后台 UI 和 user lifecycle smoke。
+- P1-E 已实现 V1 内容 CMS 验收闭环：首页聚合、新闻、案例、关于我们、领导团队、Banner、分类/标签、站点设置和 V1 content smoke。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
 
@@ -267,3 +268,20 @@ P1-D closes the Portal V1 account-management lifecycle without changing password
 | Smoke | Implemented | `scripts/smoke_user_lifecycle_backend.sh` validates the user lifecycle against isolated runtime SQLite. |
 
 Remaining release gaps include broader permission-matrix tests, content CMS acceptance closure, full-link password-reset UAT, security scanning, and performance testing.
+
+## 18. P1-E V1 Content CMS Closure
+
+P1-E closes the V1 content CMS acceptance surface without changing auth, password reset, user lifecycle, SMS, or real email behavior.
+
+| Item | Status | Notes |
+|---|---|---|
+| Homepage content | Implemented | `/api/v1/public/home` and the public homepage cover banners, institution profile, stats, news, and cases. |
+| News | Implemented | Public list/detail support published-only results, category metadata, keyword search, and admin maintenance fields. |
+| Cases | Implemented | Public list/detail cover project intro, partner, stage, benefits, result blocks, and admin maintenance fields. |
+| About us | Implemented | About content uses page blocks and site settings for mission, vision, strategy, governance, contact, and email. |
+| Leaders | Implemented | Public visible leaders and admin maintenance are covered. |
+| Categories/tags | Implemented | Public categories/tags and admin category/tag maintenance are covered. |
+| Smoke | Implemented | `scripts/smoke_v1_content_backend.sh` validates public content endpoints, draft hiding, and admin endpoint reachability on isolated SQLite. |
+| File URL boundary | Deferred | Public file/image delivery remains a later file-service hardening item; P1-E uses safe frontend fallbacks. |
+
+Remaining release gaps include P1-F acceptance report consolidation, broader permission-matrix tests, full-link password-reset UAT, security scanning, performance testing, and production deployment validation.

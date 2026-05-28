@@ -6,6 +6,7 @@
 |---|---|---|---|
 | GET | /healthz | 健康检查 | 已有 |
 | GET | /api/v1/public/categories | 公开分类 | 已有 |
+| GET | /api/v1/public/tags | 公开标签 | P1-E 已实现 |
 | GET | /api/v1/public/home | 首页数据 | 已有 |
 | GET | /api/v1/public/news | 新闻列表 | 已有 |
 | GET | /api/v1/public/news/{slug} | 新闻详情 | 已有 |
@@ -42,7 +43,7 @@
 | GET/POST/PUT | /api/v1/admin/pages | 单页管理 | 已有 |
 | GET/POST/PUT | /api/v1/admin/banners | Banner 管理 | 已有 |
 | GET/POST/PUT | /api/v1/admin/categories | 分类管理 | 已有 |
-| GET/POST | /api/v1/admin/tags | 标签管理 | 已有 |
+| GET/POST/PUT | /api/v1/admin/tags | 标签管理 | P1-E 已补齐编辑 |
 | GET/POST/PUT | /api/v1/admin/leaders | 领导管理 | 已有 |
 | GET/POST/PUT | /api/v1/admin/institutes | 研究所管理 | 已有 |
 | GET | /api/v1/admin/files | 文件列表 | 已有 |
@@ -70,6 +71,7 @@
 - 文档中响应 `code` 口径与代码可能不一致。
 - 缺完整认证 API smoke 脚本；P1-B 已增加邮箱密码重置后端 smoke。
 - 缺权限矩阵测试；P1-D 已增加用户生命周期后端 smoke。
+- V1 内容 CMS 已有 `scripts/smoke_v1_content_backend.sh`；P1-F 仍需汇总验收报告。
 - 缺文件下载门禁接口。
 - 缺邮箱密码重置完整链接 UAT；前端页面已在 P1-C 接入。
 - 缺全站搜索接口。

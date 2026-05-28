@@ -16,6 +16,7 @@ const menus = computed<MenuItem[]>(() => [
   { path: "/dashboard", label: "仪表盘", icon: House },
   { path: "/articles", label: "新闻管理", icon: Document },
   { path: "/cases", label: "成功案例", icon: PictureFilled },
+  { path: "/pages", label: "单页内容", icon: Document },
   { path: "/institutes", label: "研究所展示", icon: Document },
   {
     label: "业务与系统",
@@ -27,6 +28,8 @@ const menus = computed<MenuItem[]>(() => [
     ],
   },
   { path: "/banners", label: "轮播图管理", icon: PictureFilled },
+  { path: "/categories", label: "分类标签", icon: Document },
+  { path: "/leaders", label: "领导团队", icon: User },
   { path: "/files", label: "文件库", icon: Files },
   { path: "/users", label: "用户审核", icon: User },
   { path: "/audit-logs", label: "审计日志", icon: Document },

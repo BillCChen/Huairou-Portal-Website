@@ -136,6 +136,10 @@ def seed_database(db: Session) -> None:
             [
                 {"type": "定位", "title": "功能定位", "content": "服务生命科学成果转化和产业协同创新。"},
                 {"type": "机制", "title": "协同机制", "content": "通过项目征集、平台开放和专家服务形成常态化对接。"},
+                {"type": "使命", "title": "使命愿景", "content": "建设面向生命科学产业的成果转化枢纽，推动创新资源高效连接。"},
+                {"type": "战略", "title": "发展战略", "content": "聚焦项目发现、平台验证、产业对接和人才协同四类核心能力。"},
+                {"type": "治理", "title": "治理结构", "content": "通过理事会指导、专业委员会论证和运营团队执行形成协同治理。"},
+                {"type": "联系", "title": "联系方式", "content": "地址、电话和邮箱由站点设置统一维护，前台关于我们页面同步展示。"},
             ],
         ),
         (
@@ -436,6 +440,10 @@ def seed_database(db: Session) -> None:
                 setting_value={
                     "site_name": "北京怀柔科学城生命科学产业创新研究院",
                     "site_subtitle": "聚焦生命科学成果转化与创新协同，服务研究、产业与人才资源对接。",
+                    "mission": "建设面向生命科学产业的成果转化枢纽。",
+                    "vision": "形成开放协同、平台支撑、产业联动的创新服务生态。",
+                    "strategy": "聚焦成果转化、共性平台、产学研合作和人才服务四类核心方向。",
+                    "governance": "理事会指导、专业委员会论证、运营团队执行。",
                     "contact_phone": "010-61660000",
                     "contact_email": "contact@hru-life.example",
                     "address": "北京市怀柔科学城创新服务示范区",

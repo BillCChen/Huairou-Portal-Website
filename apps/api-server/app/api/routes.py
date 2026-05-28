@@ -90,7 +90,49 @@ def paginate(query, db: Session, page: int, page_size: int):
     return {"items": items, "page": page, "page_size": page_size, "total": total}
 
 
-def serialize_article(article: Article) -> dict:
+def serialize_category_ref(category: Category | None) -> dict | None:
+    if not category:
+        return None
+    return {
+        "id": category.id,
+        "name": category.name,
+        "slug": category.slug,
+        "type": category.type,
+    }
+
+
+def serialize_tag_ref(tag: Tag) -> dict:
+    return {
+        "id": tag.id,
+        "name": tag.name,
+        "slug": tag.slug,
+        "type": tag.type,
+        "color": tag.color,
+        "enabled": tag.enabled,
+    }
+
+
+def article_tag_rows(db: Session, article_id: int) -> list[Tag]:
+    return db.scalars(
+        select(Tag)
+        .join(ArticleTag, ArticleTag.tag_id == Tag.id)
+        .where(ArticleTag.article_id == article_id)
+        .order_by(Tag.name.asc(), Tag.id.asc())
+    ).all()
+
+
+def case_tag_rows(db: Session, case_id: int) -> list[Tag]:
+    return db.scalars(
+        select(Tag)
+        .join(CaseTag, CaseTag.tag_id == Tag.id)
+        .where(CaseTag.case_id == case_id)
+        .order_by(Tag.name.asc(), Tag.id.asc())
+    ).all()
+
+
+def serialize_article(article: Article, db: Session | None = None) -> dict:
+    category = db.get(Category, article.category_id) if db and article.category_id else None
+    tags = article_tag_rows(db, article.id) if db else []
     return {
         "id": article.id,
         "title": article.title,
@@ -107,17 +149,27 @@ def serialize_article(article: Article) -> dict:
         "content_html": article.content_html,
         "attachments": article.attachments or [],
         "category_id": article.category_id,
+        "category": serialize_category_ref(category),
+        "category_name": category.name if category else None,
+        "category_slug": category.slug if category else None,
         "cover_file_id": article.cover_file_id,
+        "tag_ids": [tag.id for tag in tags],
+        "tags": [serialize_tag_ref(tag) for tag in tags],
     }
 
 
-def serialize_case(case: CaseStudy) -> dict:
+def serialize_case(case: CaseStudy, db: Session | None = None) -> dict:
+    category = db.get(Category, case.category_id) if db and case.category_id else None
+    tags = case_tag_rows(db, case.id) if db else []
     return {
         "id": case.id,
         "title": case.title,
         "slug": case.slug,
         "summary": case.summary,
         "category_id": case.category_id,
+        "category": serialize_category_ref(category),
+        "category_name": category.name if category else None,
+        "category_slug": category.slug if category else None,
         "partner_name": case.partner_name,
         "stage": case.stage,
         "highlights": case.highlights or [],
@@ -127,6 +179,8 @@ def serialize_case(case: CaseStudy) -> dict:
         "publish_at": case.publish_at,
         "status": case.status,
         "cover_file_id": case.cover_file_id,
+        "tag_ids": [tag.id for tag in tags],
+        "tags": [serialize_tag_ref(tag) for tag in tags],
     }
 
 
@@ -247,7 +301,16 @@ def list_public_categories(type: str | None = None, db: Session = Depends(get_db
     if normalized_type:
         query = query.where(Category.type == normalized_type)
     rows = db.scalars(query).all()
-    return APIResponse(data=[{"id": row.id, "name": row.name, "slug": row.slug, "type": row.type} for row in rows])
+    return APIResponse(data=[serialize_category_ref(row) for row in rows])
+
+
+@router.get(f"{settings.api_prefix}/public/tags", response_model=APIResponse)
+def list_public_tags(type: str | None = None, db: Session = Depends(get_db)):
+    query = select(Tag).where(Tag.enabled.is_(True)).order_by(Tag.type.asc(), Tag.name.asc(), Tag.id.asc())
+    if type:
+        query = query.where(Tag.type == type)
+    rows = db.scalars(query).all()
+    return APIResponse(data=[serialize_tag_ref(row) for row in rows])
 
 
 @router.get(f"{settings.api_prefix}/public/home", response_model=APIResponse)
@@ -267,8 +330,8 @@ def get_home(db: Session = Depends(get_db)):
     return APIResponse(
         data={
             "banners": encode(banners),
-            "news": [serialize_article(item) for item in articles],
-            "cases": [serialize_case(item) for item in cases],
+            "news": [serialize_article(item, db) for item in articles],
+            "cases": [serialize_case(item, db) for item in cases],
             "about": encode(pages.get("about")),
             "site_settings": settings_map,
         }
@@ -297,7 +360,7 @@ def list_news(
         query = query.where(or_(Article.title.like(keyword_expr), Article.summary.like(keyword_expr), Article.content_html.like(keyword_expr)))
     query = query.order_by(Article.is_top.desc(), Article.publish_at.desc(), Article.id.desc())
     result = paginate(query, db, page, page_size)
-    result["items"] = [serialize_article(item) for item in result["items"]]
+    result["items"] = [serialize_article(item, db) for item in result["items"]]
     return APIResponse(data=result)
 
 
@@ -312,7 +375,7 @@ def get_news_detail(slug: str, db: Session = Depends(get_db)):
         .order_by(Article.publish_at.desc())
         .limit(3)
     ).all()
-    return APIResponse(data={"article": serialize_article(article), "related": [serialize_article(item) for item in related]})
+    return APIResponse(data={"article": serialize_article(article, db), "related": [serialize_article(item, db) for item in related]})
 
 
 @router.get(f"{settings.api_prefix}/public/cases", response_model=APIResponse)
@@ -335,7 +398,7 @@ def list_cases(
         query = query.where(or_(CaseStudy.title.like(keyword_expr), CaseStudy.summary.like(keyword_expr), CaseStudy.content_html.like(keyword_expr)))
     query = query.order_by(CaseStudy.publish_at.desc(), CaseStudy.id.desc())
     result = paginate(query, db, page, page_size)
-    result["items"] = [serialize_case(item) for item in result["items"]]
+    result["items"] = [serialize_case(item, db) for item in result["items"]]
     return APIResponse(data=result)
 
 
@@ -350,7 +413,7 @@ def get_case_detail(slug: str, db: Session = Depends(get_db)):
         .order_by(CaseStudy.publish_at.desc())
         .limit(3)
     ).all()
-    return APIResponse(data={"case": serialize_case(case), "related": [serialize_case(item) for item in related]})
+    return APIResponse(data={"case": serialize_case(case, db), "related": [serialize_case(item, db) for item in related]})
 
 
 @router.get(f"{settings.api_prefix}/public/pages/{{page_key}}", response_model=APIResponse)
@@ -528,7 +591,7 @@ def get_dashboard(_: User = Depends(require_admin), db: Session = Depends(get_db
 @router.get(f"{settings.api_prefix}/admin/articles", response_model=APIResponse)
 def admin_list_articles(page: int = 1, page_size: int = 20, _: User = Depends(require_admin), db: Session = Depends(get_db)):
     result = paginate(select(Article).order_by(Article.updated_at.desc(), Article.id.desc()), db, page, page_size)
-    result["items"] = [serialize_article(item) for item in result["items"]]
+    result["items"] = [serialize_article(item, db) for item in result["items"]]
     return APIResponse(data=result)
 
 
@@ -546,7 +609,7 @@ def admin_create_article(payload: ArticleIn, current_user: User = Depends(requir
     if conflict_response:
         return conflict_response
     db.refresh(article)
-    return APIResponse(data=serialize_article(article))
+    return APIResponse(data=serialize_article(article, db))
 
 
 @router.put(f"{settings.api_prefix}/admin/articles/{{article_id}}", response_model=APIResponse)
@@ -564,13 +627,13 @@ def admin_update_article(article_id: int, payload: ArticleIn, current_user: User
     if conflict_response:
         return conflict_response
     db.refresh(article)
-    return APIResponse(data=serialize_article(article))
+    return APIResponse(data=serialize_article(article, db))
 
 
 @router.get(f"{settings.api_prefix}/admin/cases", response_model=APIResponse)
 def admin_list_cases(page: int = 1, page_size: int = 20, _: User = Depends(require_admin), db: Session = Depends(get_db)):
     result = paginate(select(CaseStudy).order_by(CaseStudy.updated_at.desc(), CaseStudy.id.desc()), db, page, page_size)
-    result["items"] = [serialize_case(item) for item in result["items"]]
+    result["items"] = [serialize_case(item, db) for item in result["items"]]
     return APIResponse(data=result)
 
 
@@ -588,7 +651,7 @@ def admin_create_case(payload: CaseIn, current_user: User = Depends(require_admi
     if conflict_response:
         return conflict_response
     db.refresh(case)
-    return APIResponse(data=serialize_case(case))
+    return APIResponse(data=serialize_case(case, db))
 
 
 @router.put(f"{settings.api_prefix}/admin/cases/{{case_id}}", response_model=APIResponse)
@@ -606,7 +669,7 @@ def admin_update_case(case_id: int, payload: CaseIn, current_user: User = Depend
     if conflict_response:
         return conflict_response
     db.refresh(case)
-    return APIResponse(data=serialize_case(case))
+    return APIResponse(data=serialize_case(case, db))
 
 
 @router.get(f"{settings.api_prefix}/admin/pages", response_model=APIResponse)
@@ -718,7 +781,24 @@ def admin_create_tag(payload: TagIn, current_user: User = Depends(require_admin)
     tag = Tag(**payload.model_dump())
     db.add(tag)
     write_audit_log(db, current_user.id, "tags", "create", "tag", None)
-    db.commit()
+    conflict_response = commit_or_slug_conflict(db)
+    if conflict_response:
+        return conflict_response
+    db.refresh(tag)
+    return APIResponse(data=encode(tag))
+
+
+@router.put(f"{settings.api_prefix}/admin/tags/{{tag_id}}", response_model=APIResponse)
+def admin_update_tag(tag_id: int, payload: TagIn, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    tag = db.get(Tag, tag_id)
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    for key, value in payload.model_dump().items():
+        setattr(tag, key, value)
+    write_audit_log(db, current_user.id, "tags", "update", "tag", str(tag_id))
+    conflict_response = commit_or_slug_conflict(db)
+    if conflict_response:
+        return conflict_response
     db.refresh(tag)
     return APIResponse(data=encode(tag))
 

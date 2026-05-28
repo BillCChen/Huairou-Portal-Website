@@ -40,6 +40,7 @@
 | PUT | `/api/v1/admin/settings/{setting_key}` | `admin_upsert_setting` |
 | GET | `/api/v1/admin/tags` | `admin_list_tags` |
 | POST | `/api/v1/admin/tags` | `admin_create_tag` |
+| PUT | `/api/v1/admin/tags/{tag_id}` | `admin_update_tag` |
 | GET | `/api/v1/admin/users` | `admin_list_users` |
 | POST | `/api/v1/admin/users` | `admin_create_user` |
 | GET | `/api/v1/admin/users/pending` | `admin_list_pending_users` |
@@ -69,8 +70,9 @@
 | GET | `/api/v1/public/news/{slug}` | `get_news_detail` |
 | GET | `/api/v1/public/pages/{page_key}` | `get_page` |
 | GET | `/api/v1/public/settings` | `list_public_settings` |
+| GET | `/api/v1/public/tags` | `list_public_tags` |
 | GET | `/healthz` | `healthz` |
 
 ## Summary
 
-- Total routes found: 66
+- Total routes found: 68

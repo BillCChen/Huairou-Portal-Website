@@ -12,6 +12,8 @@ const props = defineProps<{
 }>();
 
 const rows = ref<any[]>([]);
+const categories = ref<any[]>([]);
+const tags = ref<any[]>([]);
 const dialogVisible = ref(false);
 const loading = ref(false);
 const editingId = ref<number | null>(null);
@@ -26,9 +28,13 @@ const routeConfig = computed(() => ({
       slug: "",
       summary: "",
       content_html: "",
+      category_id: null,
+      cover_file_id: null,
       status: "draft",
       source: "",
       author: "",
+      publish_at: null,
+      is_top: false,
       seo_title: "",
       seo_description: "",
       seo_keywords: "",
@@ -44,9 +50,12 @@ const routeConfig = computed(() => ({
       slug: "",
       summary: "",
       content_html: "",
+      category_id: null,
+      cover_file_id: null,
       status: "draft",
       partner_name: "",
       stage: "",
+      publish_at: null,
       benefits: "",
       highlights: [],
       result_blocks: [],
@@ -80,6 +89,30 @@ const routeConfig = computed(() => ({
   },
 })[props.kind]);
 
+const categoryType = computed(() => {
+  if (props.kind === "articles") {
+    return "article";
+  }
+  if (props.kind === "cases") {
+    return "case";
+  }
+  return "";
+});
+
+const filteredCategories = computed(() =>
+  categories.value.filter((item) => item.type === categoryType.value)
+);
+
+const filteredTags = computed(() => {
+  if (props.kind === "articles") {
+    return tags.value.filter((item) => ["新闻", "content", "article"].includes(item.type));
+  }
+  if (props.kind === "cases") {
+    return tags.value.filter((item) => ["案例", "content", "case"].includes(item.type));
+  }
+  return tags.value;
+});
+
 const bannerTagOptions = [
   { label: "院内新闻", value: "院内新闻" },
   { label: "行业资讯", value: "行业资讯" },
@@ -89,6 +122,27 @@ const bannerTagOptions = [
 
 const resetForm = () => {
   Object.assign(form, JSON.parse(JSON.stringify(routeConfig.value.initial)));
+};
+
+const normalizePayload = () => {
+  const payload = JSON.parse(JSON.stringify(form));
+  for (const key of ["category_id", "cover_file_id", "image_file_id"]) {
+    if (payload[key] === "" || payload[key] === undefined) {
+      payload[key] = null;
+    }
+  }
+  if (payload.publish_at === "") {
+    payload.publish_at = null;
+  }
+  return payload;
+};
+
+const updateJsonField = (field: string, value: string, fallback: any) => {
+  try {
+    form[field] = JSON.parse(value || "null") ?? fallback;
+  } catch {
+    ElMessage.error("JSON 格式无效");
+  }
 };
 
 const openCreate = () => {
@@ -122,6 +176,14 @@ const load = async () => {
         : routeConfig.value.list;
     const data = await unwrap<any>(api.get(listEndpoint));
     rows.value = Array.isArray(data) ? data : data.items || [];
+    if (props.kind === "articles" || props.kind === "cases") {
+      const [categoryData, tagData] = await Promise.all([
+        unwrap<any[]>(api.get("/admin/categories")),
+        unwrap<any[]>(api.get("/admin/tags")),
+      ]);
+      categories.value = categoryData;
+      tags.value = tagData;
+    }
     editingId.value = null;
     dialogVisible.value = false;
     resetForm();
@@ -160,11 +222,12 @@ const submit = async () => {
   if (props.kind === "pages" && props.pageKey) {
     form.page_key = props.pageKey;
   }
+  const payload = normalizePayload();
   try {
     if (editingId.value) {
-      await unwrap(api.put(`${routeConfig.value.submit}/${editingId.value}`, form));
+      await unwrap(api.put(`${routeConfig.value.submit}/${editingId.value}`, payload));
     } else {
-      await unwrap(api.post(routeConfig.value.submit, form));
+      await unwrap(api.post(routeConfig.value.submit, payload));
     }
     ElMessage.success("保存成功");
     dialogVisible.value = false;
@@ -284,6 +347,26 @@ watch(
         <el-form-item v-if="props.kind !== 'banners' && props.kind !== 'pages'" label="标识">
           <el-input v-model="form.slug" />
         </el-form-item>
+        <el-form-item v-if="props.kind === 'articles' || props.kind === 'cases'" label="分类">
+          <el-select v-model="form.category_id" clearable style="width: 100%;">
+            <el-option
+              v-for="item in filteredCategories"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item v-if="props.kind === 'articles' || props.kind === 'cases'" label="标签">
+          <el-select v-model="form.tag_ids" multiple clearable style="width: 100%;">
+            <el-option
+              v-for="item in filteredTags"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item v-if="props.kind === 'pages'" label="页面键">
           <el-input v-model="form.page_key" :disabled="Boolean(props.pageKey)" />
         </el-form-item>
@@ -300,6 +383,15 @@ watch(
           <el-form-item label="作者">
             <el-input v-model="form.author" />
           </el-form-item>
+          <el-form-item label="封面文件编号">
+            <el-input-number v-model="form.cover_file_id" :min="1" controls-position="right" />
+          </el-form-item>
+          <el-form-item label="置顶">
+            <el-switch v-model="form.is_top" />
+          </el-form-item>
+          <el-form-item label="发布时间">
+            <el-input v-model="form.publish_at" placeholder="2026-01-01T00:00:00Z" />
+          </el-form-item>
         </template>
         <template v-if="props.kind === 'cases'">
           <el-form-item label="合作方">
@@ -310,6 +402,38 @@ watch(
           </el-form-item>
           <el-form-item label="收益亮点">
             <el-input v-model="form.benefits" type="textarea" :rows="3" />
+          </el-form-item>
+          <el-form-item label="封面文件编号">
+            <el-input-number v-model="form.cover_file_id" :min="1" controls-position="right" />
+          </el-form-item>
+          <el-form-item label="发布时间">
+            <el-input v-model="form.publish_at" placeholder="2026-01-01T00:00:00Z" />
+          </el-form-item>
+          <el-form-item label="高亮标签 JSON">
+            <el-input
+              :model-value="JSON.stringify(form.highlights || [], null, 2)"
+              type="textarea"
+              :rows="4"
+              @change="(value: string) => updateJsonField('highlights', value, [])"
+            />
+          </el-form-item>
+          <el-form-item label="成果块 JSON">
+            <el-input
+              :model-value="JSON.stringify(form.result_blocks || [], null, 2)"
+              type="textarea"
+              :rows="5"
+              @change="(value: string) => updateJsonField('result_blocks', value, [])"
+            />
+          </el-form-item>
+        </template>
+        <template v-if="props.kind === 'pages'">
+          <el-form-item label="内容块 JSON">
+            <el-input
+              :model-value="JSON.stringify(form.blocks || [], null, 2)"
+              type="textarea"
+              :rows="5"
+              @change="(value: string) => updateJsonField('blocks', value, [])"
+            />
           </el-form-item>
         </template>
         <template v-if="props.kind === 'banners'">
@@ -328,6 +452,15 @@ watch(
           </el-form-item>
           <el-form-item label="按钮链接">
             <el-input v-model="form.button_url" />
+          </el-form-item>
+          <el-form-item label="图片文件编号">
+            <el-input-number v-model="form.image_file_id" :min="1" controls-position="right" />
+          </el-form-item>
+          <el-form-item label="排序">
+            <el-input-number v-model="form.sort_order" :min="0" />
+          </el-form-item>
+          <el-form-item label="启用">
+            <el-switch v-model="form.is_enabled" />
           </el-form-item>
         </template>
         <el-form-item v-if="props.kind !== 'banners'" label="状态">

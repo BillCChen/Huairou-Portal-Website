@@ -14,8 +14,8 @@ P1 uses the P0 baseline as an admission gate and narrows the account scope accor
 | P1-B | Email password reset backend | yes | model/routes/provider/tests completed; frontend remains P1-C |
 | P1-C | Email password reset frontend | yes | forgot/reset confirm pages completed; full-link UAT remains later |
 | P1-D | User approval/institution user/role closure | yes | completed: reject/disable/enable/create/assign |
-| P1-E | V1 content CMS acceptance closure | yes | homepage/news/cases/about/leaders |
-| P1-F | V1 smoke tests and acceptance docs | scripts/docs | public/auth/admin/permission smoke |
+| P1-E | V1 content CMS acceptance closure | yes | completed: homepage/news/cases/about/leaders/banners/categories/tags |
+| P1-F | V1 smoke tests and acceptance docs | scripts/docs | consolidate public/auth/admin/permission smoke evidence |
 | P1-G | P1 merge readiness | docs/scripts | final validation and tag |
 
 ## 3. Excluded From P1
@@ -117,6 +117,29 @@ Not included:
 - V2 business modules.
 - Formal database migrations.
 
-## 9. Next Recommended Stage
+## 9. P1-E Completion Boundary
 
-P1-E: close V1 content CMS acceptance for homepage, news, cases, about pages, and leaders without adding V2 business modules.
+P1-E closes the Portal V1 content CMS acceptance surface using the existing content models and site settings.
+
+Completed:
+
+- Homepage public aggregation for banners, institution profile, core stats, news, and cases.
+- News public list/detail with category metadata, keyword search, and published-only filtering.
+- Case public list/detail with project intro, partner, stage, benefits, result blocks, and category metadata.
+- About-us content using page blocks and site profile settings for mission, vision, strategy, governance, contact, and email.
+- Public leaders, categories, tags, and settings endpoints.
+- Admin-console maintenance fields for article/category/tag/case/page/banner/leader settings needed by V1.
+- Isolated backend smoke coverage in `scripts/smoke_v1_content_backend.sh`.
+
+Not included:
+
+- Password-reset or user lifecycle logic changes.
+- SMS verification login acceptance.
+- Real SMTP or real SMS provider work.
+- V2 talent/expert/event/search/recommendation/statistics systems.
+- Public file download or signed image delivery.
+- Formal database migrations.
+
+## 10. Next Recommended Stage
+
+P1-F: consolidate P1 public/auth/admin smoke tests and acceptance documentation before merge readiness.

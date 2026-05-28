@@ -106,6 +106,9 @@ const heroSubTitle = computed(
 const heroTabs = computed(() => "请输入需求、技术、企业或服务关键词");
 
 const newsItems = computed(() => newsData.value?.items || []);
+const statItems = computed(() => Array.isArray(home.value?.site_settings?.home_stats) ? home.value.site_settings.home_stats : []);
+const aboutPage = computed(() => home.value?.about || {});
+const homeCases = computed(() => home.value?.cases || []);
 const carouselItems = computed(() => newsItems.value.slice(0, 5));
 const activeCarouselIndex = ref(0);
 const featured = computed(() => carouselItems.value[activeCarouselIndex.value] || newsItems.value[0] || null);
@@ -259,6 +262,8 @@ const resolveThumbClass = (index: number) => {
   const styles = ["thumb--room", "thumb--building", "thumb--stage", "thumb--screen"];
   return styles[index % styles.length];
 };
+
+const resolveCaseCategoryLabel = (item: any) => item?.category_name || item?.category?.name || item?.stage || "成功案例";
 
 useSeoMeta({
   title: () => `${siteProfile.value?.site_name || "北京怀柔科学城生命科学产业创新研究院"} - 首页`,
@@ -460,6 +465,59 @@ useSeoMeta({
           <button class="news-pager" :disabled="page <= 1" type="button" @click="changePage(page - 1)">上一页</button>
           <span>第 {{ page }} / {{ totalPages }} 页</span>
           <button class="news-pager" :disabled="page >= totalPages" type="button" @click="changePage(page + 1)">下一页</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="home-band home-band--profile">
+      <div class="home-band__inner">
+        <div class="section-kicker">INSTITUTE</div>
+        <div class="home-profile-grid">
+          <div>
+            <h2 class="home-section-title">机构概况</h2>
+            <div class="home-profile-content rich-content" v-html="aboutPage?.content_html || siteProfile?.site_subtitle || '暂无机构概况。'" />
+            <NuxtLink class="home-text-link" to="/about">了解更多</NuxtLink>
+          </div>
+          <div class="stats-grid">
+            <div v-for="item in statItems" :key="item.label" class="stat-card">
+              <strong>{{ item.value }}</strong>
+              <span>{{ item.label }}</span>
+            </div>
+            <div v-if="!statItems.length" class="stat-card stat-card--empty">
+              <strong>--</strong>
+              <span>核心数据待维护</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="home-band">
+      <div class="home-band__inner">
+        <div class="home-section-head">
+          <div>
+            <div class="section-kicker">CASES</div>
+            <h2 class="home-section-title">成功案例</h2>
+          </div>
+          <NuxtLink class="home-text-link" to="/cases">查看更多</NuxtLink>
+        </div>
+        <div class="case-preview-grid">
+          <article v-for="item in homeCases" :key="item.slug" class="case-preview-card">
+            <div class="case-preview-card__meta">{{ resolveCaseCategoryLabel(item) }}</div>
+            <h3>
+              <NuxtLink :to="`/cases/${item.slug}`">{{ item.title }}</NuxtLink>
+            </h3>
+            <p>{{ item.summary || "暂无案例摘要" }}</p>
+            <div class="case-preview-card__footer">
+              <span>{{ item.partner_name || "合作方待维护" }}</span>
+              <span>{{ item.stage || "阶段待维护" }}</span>
+            </div>
+          </article>
+          <article v-if="!homeCases.length" class="case-preview-card">
+            <div class="case-preview-card__meta">CASE</div>
+            <h3>暂无成功案例</h3>
+            <p>后台发布案例后将自动展示在首页。</p>
+          </article>
         </div>
       </div>
     </section>
@@ -1144,6 +1202,156 @@ useSeoMeta({
   opacity: 0.6;
 }
 
+.home-band {
+  background: #fff;
+  padding: clamp(34px, 6vw, 64px) 0;
+  border-top: 1px solid var(--line);
+}
+
+.home-band--profile {
+  background: #f9fbff;
+}
+
+.home-band__inner {
+  width: min(1130px, calc(100% - 80px));
+  margin: 0 auto;
+}
+
+.section-kicker {
+  color: #0e58b9;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.home-section-title {
+  margin: 8px 0 0;
+  color: #1b3160;
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.25;
+  font-weight: 900;
+}
+
+.home-profile-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  gap: 26px;
+  align-items: start;
+}
+
+.home-profile-content {
+  margin-top: 18px;
+  color: #4b5568;
+  line-height: 1.9;
+  font-size: 14px;
+}
+
+.home-text-link {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 18px;
+  color: #0e58b9;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.stat-card {
+  min-height: 104px;
+  padding: 20px;
+  border: 1px solid #dbe5f2;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(10, 49, 105, 0.06);
+}
+
+.stat-card strong {
+  display: block;
+  color: #0e58b9;
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.stat-card span {
+  display: block;
+  margin-top: 12px;
+  color: #566278;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.stat-card--empty {
+  grid-column: 1 / -1;
+}
+
+.home-section-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: end;
+}
+
+.case-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.case-preview-card {
+  min-height: 220px;
+  padding: 24px;
+  border: 1px solid #dbe5f2;
+  background: #f9fbff;
+  box-shadow: 0 8px 22px rgba(10, 49, 105, 0.05);
+}
+
+.case-preview-card__meta {
+  color: #0e58b9;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.case-preview-card h3 {
+  margin: 12px 0 0;
+  font-size: 20px;
+  line-height: 1.35;
+}
+
+.case-preview-card h3 a {
+  color: #1b3160;
+  text-decoration: none;
+}
+
+.case-preview-card p {
+  margin: 12px 0 0;
+  color: #566278;
+  line-height: 1.75;
+  font-size: 14px;
+}
+
+.case-preview-card__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.case-preview-card__footer span {
+  padding: 4px 8px;
+  color: #526078;
+  font-size: 12px;
+  background: #eef4fb;
+  border-radius: 4px;
+}
+
 @media (min-width: 1100px) {
   .hero-copy-wrap {
     padding-top: 90px;
@@ -1464,6 +1672,24 @@ useSeoMeta({
 
   .news-item-content p {
     font-size: 12px;
+  }
+
+  .home-band__inner {
+    width: min(100%, 360px);
+  }
+
+  .home-profile-grid,
+  .case-preview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-section-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
   }
 }
 
