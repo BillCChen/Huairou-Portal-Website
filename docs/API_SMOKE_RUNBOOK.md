@@ -104,3 +104,25 @@ PORTAL_API_BASE=http://127.0.0.1:18200 ./scripts/smoke_api_public.sh
 Result: real public API smoke PASS against the controlled local API instance on `127.0.0.1:18200`.
 
 Runtime artifacts were kept under `.runtime-logs/p0-5/` and must not be committed.
+
+## 10. Reusable Local Real Smoke Runner
+
+P0-6 added a reusable local runner:
+
+```bash
+PORTAL_BACKEND_PYTHON=python3.11 ./scripts/run_local_public_api_smoke.sh
+```
+
+The runner:
+
+* selects a compatible Python interpreter;
+* creates or reuses an ignored runtime venv under `.runtime-logs/local-public-api-smoke/`;
+* installs only `apps/api-server/requirements.txt`;
+* starts the API on `127.0.0.1:18200` by default;
+* refuses to use port `8000`;
+* fails if the target smoke port is already occupied and does not kill unknown processes;
+* uses ignored SQLite and upload directories;
+* runs `scripts/smoke_api_public.sh`;
+* stops only the API process it started.
+
+`PORTAL_SMOKE_ALLOW_UNAVAILABLE=1` is still only a placeholder mode and must not be counted as a real smoke PASS.

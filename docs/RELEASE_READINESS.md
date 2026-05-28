@@ -184,3 +184,20 @@ Evidence:
 | Post-smoke validation | PASS | Minimal acceptance, web check/build, admin check/build, and backend compileall all passed |
 
 Remaining release gaps are unchanged: auth smoke, admin RBAC smoke, file upload/download security smoke, performance testing, security scanning, and production deployment validation are still required later.
+
+## 13. P0-6 Reusable Local Public API Smoke Runner
+
+Reusable local public API smoke status: P0-6 PASS.
+
+Evidence:
+
+| Check | Status | Notes |
+|---|---|---|
+| Local smoke runner | PASS | `scripts/run_local_public_api_smoke.sh` added. |
+| Runner syntax | PASS | `bash -n scripts/run_local_public_api_smoke.sh`. |
+| Real public API smoke | PASS | `PORTAL_BACKEND_PYTHON=python3.11 ./scripts/run_local_public_api_smoke.sh`. |
+| Runtime isolation | PASS | Uses ignored `.runtime-logs/local-public-api-smoke/` for venv, SQLite, uploads, logs, and PID file. |
+| Post-run cleanup | PASS | The runner stops the API process it starts and leaves port `18200` free. |
+| Post-smoke validation | PASS | Web check/build, admin check/build, backend compileall, and post-commit minimal acceptance passed. |
+
+Remaining release gaps are unchanged: auth smoke, admin RBAC smoke, file upload/download security smoke, performance testing, security scanning, and production deployment validation are still required later.

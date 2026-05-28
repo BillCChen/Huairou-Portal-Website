@@ -188,3 +188,20 @@ P0-5c result table:
 | Backend compileall | PASS | Ran with the Python 3.11 isolated venv |
 
 Runtime artifacts were written only under `.runtime-logs/p0-5/` and were not committed. The local API process started for P0-5c was stopped after the smoke run.
+
+## 14. P0-6 Reusable Local Public API Smoke Runner
+
+P0-6 codified the successful P0-5c manual local API smoke into `scripts/run_local_public_api_smoke.sh`.
+
+| Check | Result | Notes |
+|---|---|---|
+| `bash -n scripts/run_local_public_api_smoke.sh` | PASS | Script syntax check passed. |
+| Reusable local real smoke runner | PASS | `PORTAL_BACKEND_PYTHON=python3.11 ./scripts/run_local_public_api_smoke.sh` |
+| `portal_min_acceptance.sh` | PASS | Run after commit because the script enforces a clean Git worktree. |
+| `pnpm check:web` | PASS | Existing Vue language plugin warning remains non-blocking. |
+| `pnpm build:web` | PASS | Build completed successfully. |
+| `pnpm check:admin` | PASS | Typecheck completed successfully. |
+| `pnpm build:admin` | PASS | Build completed with existing chunk-size warning. |
+| Backend compileall | PASS | Ran with `.runtime-logs/local-public-api-smoke/backend-venv-py311/bin/python`. |
+
+Runtime artifacts were written only under `.runtime-logs/local-public-api-smoke/` and were not committed.
