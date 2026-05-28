@@ -41,6 +41,8 @@
 - HEAD 快照提交使用本机自动 committer 身份，需要合并前决定是否修正。
 - `apps/api-server/app/main.py` 存在临时 `ensure_banner_tag_column()` 兼容逻辑，后续应以正式迁移替代。
 - `SiteHeader.vue` 中的本地 Achievement 地址只能作为演示入口，不能作为生产第三方系统对接。
+- P1-A 已确认手机号验证码登录排除在 Portal V1 acceptance 外；现有 SMS UI/API 只能视为 current-code/test-path。
+- P1-A 已确认邮箱邮件密码重置是 Portal V1 必做项；Portal 当前尚未实现 email token、SMTP/dev provider、reset-confirm link 和 full-link UAT。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
 
@@ -201,3 +203,16 @@ Evidence:
 | Post-smoke validation | PASS | Web check/build, admin check/build, backend compileall, and post-commit minimal acceptance passed. |
 
 Remaining release gaps are unchanged: auth smoke, admin RBAC smoke, file upload/download security smoke, performance testing, security scanning, and production deployment validation are still required later.
+
+## 14. P1-A Auth Scope Revision
+
+P1-A records the V1 auth scope correction and password reset reuse audit.
+
+| Item | Status | Notes |
+|---|---|---|
+| SMS verification login | Excluded from V1 acceptance | Existing SMS login/reset code remains current-code/test-path only. Do not add real SMS provider or SMS V1 smoke. |
+| Email password reset | Required for V1 | Current Portal implementation is missing the Achievement-style email reset token flow. |
+| Achievement reuse audit | Completed | `docs/P1_PASSWORD_RESET_REUSE_MAP.md` maps reusable routes, models, provider boundaries, tests, and UAT evidence. |
+| P1 execution plan | Added | `docs/P1_CONTRACT_CLOSURE_PLAN.md` defines P1-B through P1-G. |
+
+P1-A does not claim password reset completion, SMS acceptance, or Portal SMTP acceptance. Those require later implementation and UAT stages.
