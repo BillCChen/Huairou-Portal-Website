@@ -40,7 +40,7 @@
 
 - HEAD 快照提交使用本机自动 committer 身份，需要合并前决定是否修正。
 - `apps/api-server/app/main.py` 存在临时 `ensure_banner_tag_column()` 兼容逻辑，后续应以正式迁移替代。
-- `SiteHeader.vue` 中的本地 Achievement 地址只能作为演示入口，不能作为生产第三方系统对接。
+- `SiteHeader.vue` 中的成果、人才、设施入口已指向正式成果转化平台域名 `https://cg.huairou.tech`，不再使用访问者本机 `127.0.0.1` 地址。
 - P1-A 已确认手机号验证码登录排除在 Portal V1 acceptance 外；现有 SMS UI/API 只能视为 current-code/test-path。
 - P1-B 已实现邮箱密码重置后端基础：email/username request、hash-only token、expiry、consumed/reuse rejection、dev outbox/disabled provider boundary 和后端 smoke。
 - P1-C 已实现邮箱密码重置前端基础：`/forgot-password`、`/password-reset/confirm?token=...`、登录页找回密码入口和前端 API client。真实 SMTP UAT 和 full-link UAT 仍未执行。

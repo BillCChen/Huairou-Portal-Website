@@ -16,13 +16,15 @@ const items: Array<{ label: string; to: string }> = [
   { label: "在线服务", to: "/service" },
 ];
 
+const resourcePlatformBaseUrl = "https://cg.huairou.tech";
+
 const groupedNavItems: Array<{ label: string; items: NavItem[] }> = [
   {
     label: "成果与平台",
     items: [
-      { label: "找成果", href: "http://127.0.0.1:5173/achievements" },
-      { label: "找人才", href: "http://127.0.0.1:5173/talents" },
-      { label: "找设施", href: "http://127.0.0.1:5173/facilities" },
+      { label: "找成果", href: `${resourcePlatformBaseUrl}/achievements` },
+      { label: "找人才", href: `${resourcePlatformBaseUrl}/talents` },
+      { label: "找设施", href: `${resourcePlatformBaseUrl}/facilities` },
     ],
   },
   {
