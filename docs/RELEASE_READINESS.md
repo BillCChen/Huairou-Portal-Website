@@ -49,6 +49,7 @@
 - P1-F 已新增 V1 总验收入口、auth/permission smoke、V1 验收清单和验收报告。
 - P1-G 已完成合并就绪审计：V1 总验收、route map 稳定性、forbidden artifact scan、basic secret scan、merge-tree 冲突检查和 18200 端口残留检查均通过；本阶段不 merge、不 push。
 - P2-A 已完成真实 SMTP password reset full-link UAT：临时 HTTPS tunnel、真实邮件送达、reset 页面打开、改密成功、旧密码拒绝、新密码登录成功和 token 复用拒绝均已脱敏记录。生产域名、正式 SMTP 运维手册、性能压测、安全扫描和 K8s 仍是后续事项。
+- P2-B 已新增生产域名部署配置模板：`deploy/docker/docker-compose.prod.yml`、`deploy/docker/.env.production.example`、`deploy/nginx/portal-prod.conf.example` 和 `docs/DEPLOYMENT_PORTAL_ECS.md`。本阶段只固化 Portal 部署模板，不执行服务器部署、不修改业务逻辑、不处理 Achievement 部署。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
 
@@ -114,6 +115,20 @@ P2-A validates the real email password reset path in a controlled temporary envi
 | Secret handling | PASS | No SMTP password, reset token, full reset link, full recipient email, login token, or password was committed. |
 
 P2-A still does not mean production release readiness. Production domain HTTPS, formal SMTP operations, performance testing, external security scanning, Kubernetes validation, public file delivery hardening, formal migrations, and V2 business systems remain separate later tracks.
+
+## 5c. P2-B Production-Domain Deployment Template Result
+
+P2-B adds versioned deployment templates for the ECS / Nginx / Docker environment. It does not deploy to the server, does not change auth, password reset, user lifecycle, V1 content CMS, SMS, or V2 business behavior.
+
+| Check | Status | Notes |
+|---|---|---|
+| Production Docker Compose template | ADDED | `deploy/docker/docker-compose.prod.yml` binds API, web, and admin only to `127.0.0.1` host ports. |
+| Production env example | ADDED | `deploy/docker/.env.production.example` contains placeholders only; real `.env.production` remains server-local. |
+| Nginx reverse proxy example | ADDED | `deploy/nginx/portal-prod.conf.example` routes `huairou.tech`, `www.huairou.tech`, `/api/`, and `portal-admin.huairou.tech`. |
+| Deployment runbook | ADDED | `docs/DEPLOYMENT_PORTAL_ECS.md` documents GitHub pull, local secrets, compose startup, Nginx enablement, verification, and rollback. |
+| Browser API base | TEMPLATE FIXED | Production web/admin API base points to `https://huairou.tech/api/v1`, not visitor-side `localhost`. |
+
+P2-B still does not mean production release readiness. The actual ECS deployment, production-domain smoke, backup policy, monitoring, performance testing, external security scanning, formal migrations, Kubernetes validation, Achievement deployment, and V2 systems remain separate later tracks.
 
 ## 6. P0-3 First Validation Run
 

@@ -107,7 +107,7 @@ Exactly one real password reset email was sent in this UAT.
 
 ## 9. Remaining Work
 
-- Replace the temporary tunnel with a production HTTPS frontend domain before production use.
+- Use the production-domain deployment templates from P2-B before repeating SMTP full-link UAT on `https://huairou.tech`.
 - Add a formal SMTP operations runbook if production operations require one.
 - Keep production performance testing, external security scanning, and Kubernetes hardening as separate tracks.
 - Keep real SMS and SSO outside this P2-A scope.
