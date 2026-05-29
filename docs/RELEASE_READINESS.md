@@ -51,6 +51,7 @@
 - P2-A 已完成真实 SMTP password reset full-link UAT：临时 HTTPS tunnel、真实邮件送达、reset 页面打开、改密成功、旧密码拒绝、新密码登录成功和 token 复用拒绝均已脱敏记录。生产域名、正式 SMTP 运维手册、性能压测、安全扫描和 K8s 仍是后续事项。
 - P2-B 已新增生产域名部署配置模板：`deploy/docker/docker-compose.prod.yml`、`deploy/docker/.env.production.example`、`deploy/nginx/portal-prod.conf.example` 和 `docs/DEPLOYMENT_PORTAL_ECS.md`。本阶段只固化 Portal 部署模板，不执行服务器部署、不修改业务逻辑、不处理 Achievement 部署。
 - P2-B2 已新增部署镜像源兼容：生产 Dockerfile 基础镜像可通过 build args 配置，`docker-compose.prod.yml` 可从服务器本地 `.env.production` 传入 ECR Public Docker Official Images 路径。本阶段不修改业务逻辑，服务器仍需 pull 后重新运行 compose。
+- P2-B3 已修正 admin 容器 runtime Nginx SSL 边界：admin 容器内部只提供 HTTP 静态站点，HTTPS 终止继续由宿主机 Nginx 负责。本阶段不修改业务逻辑。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
 
@@ -143,6 +144,18 @@ P2-B2 records deployment-only compatibility for ECS environments where Docker Hu
 | Deployment runbook | UPDATED | `docs/DEPLOYMENT_PORTAL_ECS.md` documents the Docker Hub mirror failure mode and the ECR Public override path. |
 
 P2-B2 still does not mean production release readiness. The server must pull the updated branch and rerun compose with server-local secrets before HTTPS deployment can be marked complete.
+
+## 5e. P2-B3 Admin Container HTTP Runtime Boundary
+
+P2-B3 records a deployment-only correction for the admin container runtime. It does not change auth, password reset, user lifecycle, V1 content CMS, SMS, or V2 business behavior.
+
+| Check | Status | Notes |
+|---|---|---|
+| Admin container Nginx | UPDATED | `deploy/docker/nginx.admin.conf` serves HTTP on container port `80` and no longer references container-local TLS certificate files. |
+| Production compose boundary | PRESERVED | `docker-compose.prod.yml` keeps admin bound to `127.0.0.1:15174:80`. |
+| Host Nginx boundary | PRESERVED | `deploy/nginx/portal-prod.conf.example` keeps TLS termination on the ECS host and proxies `portal-admin.huairou.tech` to `127.0.0.1:15174`. |
+
+P2-B3 still does not mean production release readiness. The server must pull the updated branch, rebuild the admin service, and verify the local admin upstream before switching public Nginx routing.
 
 ## 6. P0-3 First Validation Run
 

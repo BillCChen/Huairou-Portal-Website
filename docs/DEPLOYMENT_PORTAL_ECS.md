@@ -111,6 +111,13 @@
 | `https://portal-admin.huairou.tech/` | `127.0.0.1:15174` | Portal 后台 |
 | `https://portal-admin.huairou.tech/api/v1` | `127.0.0.1:18100` | Portal API |
 
+Portal admin 容器内部只提供 HTTP 静态站点：
+
+- admin 容器监听 `80`，由 Compose 绑定到宿主机 `127.0.0.1:15174`。
+- HTTPS 终止由宿主机 Nginx 的 `portal-admin.huairou.tech` server block 处理。
+- 不要在 admin 容器内配置 `/etc/ssl/certs/portal.crt` 或 `/etc/ssl/private/portal.key`。
+- 如果 admin 容器日志出现 `portal.crt` missing，说明服务器仍在使用旧的容器内 SSL 配置，应更新到包含 HTTP-only admin Nginx 模板的版本后重建 admin 服务。
+
 ## 7. 验证
 
 服务器本地执行：
