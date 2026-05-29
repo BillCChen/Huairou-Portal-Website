@@ -14,6 +14,7 @@ from app.db.models import AuditLog, PasswordResetToken, User
 from app.services.account_notifications import send_password_changed_notification
 from app.services.email_notifications import email_delivery_configuration_issues, ensure_email_delivery_ready, mask_email, send_plaintext_email
 from app.services.password_policy import PASSWORD_UNCHANGED_MESSAGE, ensure_password_not_current, validate_password_policy
+from app.services.request_context import current_request_meta
 
 
 PASSWORD_RESET_SAFE_MESSAGE = "If the account can receive password reset email, instructions will be sent."
@@ -62,6 +63,7 @@ def write_auth_audit(
     object_id: str | None = None,
     detail: dict | None = None,
 ) -> None:
+    meta = current_request_meta()
     db.add(
         AuditLog(
             user_id=user_id,
@@ -70,6 +72,12 @@ def write_auth_audit(
             object_type="password_reset",
             object_id=object_id,
             detail_json=detail or {},
+            ip_address=meta.ip_address,
+            user_agent=meta.user_agent,
+            path=meta.path,
+            method=meta.method,
+            result="failure" if action.endswith("_failed") else "success",
+            failure_reason=(detail or {}).get("reason") if action.endswith("_failed") else None,
         )
     )
 

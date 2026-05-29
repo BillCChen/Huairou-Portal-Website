@@ -265,6 +265,12 @@ class AuditLog(Base):
     object_type: Mapped[str] = mapped_column(String(50))
     object_id: Mapped[str | None] = mapped_column(String(100))
     detail_json: Mapped[dict | None] = mapped_column(JSON, default=dict)
+    ip_address: Mapped[str | None] = mapped_column(String(50))
+    user_agent: Mapped[str | None] = mapped_column(String(512))
+    path: Mapped[str | None] = mapped_column(String(255))
+    method: Mapped[str | None] = mapped_column(String(10))
+    result: Mapped[str | None] = mapped_column(String(30))
+    failure_reason: Mapped[str | None] = mapped_column(String(100))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -276,5 +282,9 @@ class LoginLog(Base):
     username: Mapped[str | None] = mapped_column(String(100))
     login_method: Mapped[str] = mapped_column(String(30))
     ip_address: Mapped[str | None] = mapped_column(String(50))
+    user_agent: Mapped[str | None] = mapped_column(String(512))
+    path: Mapped[str | None] = mapped_column(String(255))
+    method: Mapped[str | None] = mapped_column(String(10))
     success: Mapped[bool] = mapped_column(Boolean, default=True)
+    failure_reason: Mapped[str | None] = mapped_column(String(100))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

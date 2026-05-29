@@ -39,7 +39,7 @@
 ## 4. 当前已知风险
 
 - HEAD 快照提交使用本机自动 committer 身份，需要合并前决定是否修正。
-- `apps/api-server/app/main.py` 存在临时 `ensure_banner_tag_column()` 兼容逻辑，后续应以正式迁移替代。
+- `apps/api-server/app/main.py` 存在临时 SQLite schema compatibility 逻辑，后续应以正式迁移替代。
 - `SiteHeader.vue` 中的成果、人才、设施入口已指向正式成果转化平台域名 `https://cg.huairou.tech`，不再使用访问者本机 `127.0.0.1` 地址。
 - P1-A 已确认手机号验证码登录排除在 Portal V1 acceptance 外；现有 SMS UI/API 只能视为 current-code/test-path。
 - P1-B 已实现邮箱密码重置后端基础：email/username request、hash-only token、expiry、consumed/reuse rejection、dev outbox/disabled provider boundary 和后端 smoke。
@@ -56,6 +56,7 @@
 - P3-B2 已完成账号邮件通知本地真实 SMTP UAT：注册提交、审核通过、审核拒绝、管理员创建机构用户和密码修改成功五类通知均已发送并由用户确认收到；审核拒绝 reason 已确认送达；未提交 SMTP password、完整邮箱、token、reset link 或密码。本阶段不 push、不部署服务器、不修改 SMS/SSO/部署配置。
 - P3-B3 记录 P3-A/P3-B/P3-B2 本地 readiness 收束：新增 `docs/P3_ACCOUNT_EXPERIENCE_READINESS.md`，本轮只做文档与本地非真实 SMTP 验证，不重发真实邮件、不 push、不部署服务器。下一步建议进入 P3-C 3 小时静默过期，或在用户另行授权后做 P3 merge-readiness / push / deployment。
 - P3-C 已新增会话过期与登录态回收本地开发：`ACCESS_TOKEN_EXPIRE_MINUTES` 默认 180 分钟，后端 JWT `exp` 过期返回 401；Portal 前台和 Admin Console 遇到认证 401 会清理本地登录态并跳转登录页；新增 1 分钟过期 smoke。本阶段不引入 refresh token、token blacklist 或多端互踢，不修改 SMS/SSO，不发送邮件，不部署服务器。
+- P3-D 已新增 IP 访问日志与账号可溯源审计本地开发：关键账号、安全和后台管理事件记录 IP、User-Agent、path、method 和结果；后台审计页提供最小 IP/账号/action 筛选；新增 `scripts/smoke_audit_ip_backend.sh` 使用 `203.0.113.10` 验证可溯源链路。本阶段不做 PV/UV、GeoIP、IP 封禁、监控 dashboard，不修改 SMS/SSO，不发送邮件，不部署服务器。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
 
@@ -237,6 +238,21 @@ P3-C is a local-only session expiry stage. It does not deploy to ECS, does not p
 | Backend smoke | ADDED | `scripts/smoke_session_expiry_backend.sh` uses a 1-minute token lifetime and verifies 401 after waiting 70 seconds. |
 
 P3-C still does not mean production release readiness. Server deployment, account notification deployment, HTML templates, account settings, password history, IP audit, file security, monitoring, performance testing, external security scanning, formal migrations, Kubernetes validation, and V2 business systems remain separate later tracks.
+
+## 5k. P3-D IP Traceability Audit
+
+P3-D is a local-only IP traceability and account/security audit stage. It does not deploy to ECS, does not push, does not change SMS/SSO, does not send email, and does not add PV/UV analytics, GeoIP, IP blocking, anomaly detection, or a monitoring dashboard.
+
+| Check | Status | Notes |
+|---|---|---|
+| Request metadata helper | ADDED | `request_context.py` extracts `X-Forwarded-For`, `X-Real-IP`, fallback client host, User-Agent, path, and method. |
+| Login traceability | UPDATED | Password login success/failure writes `LoginLog` and auth audit rows with IP, User-Agent, path, method, result, and failure reason. |
+| Account/security audit | UPDATED | Registration, password reset request/confirm, protected-route unauthorized, user lifecycle, role assignment, and existing CMS audits carry request metadata. |
+| Admin logs UI | UPDATED | The audit logs page adds IP/account/action filters and a login-log tab with IP/User-Agent display. |
+| Backend smoke | ADDED | `scripts/smoke_audit_ip_backend.sh` uses test IP `203.0.113.10` and verifies login, registration, password reset, approval/rejection, admin-created user, role change, and filtering. |
+| Retention | DOCUMENTED | `docs/P3_AUDIT_IP_TRACEABILITY.md` recommends 180-day retention; automatic cleanup is deferred. |
+
+P3-D still does not mean production release readiness. Formal migrations, server deployment, real operational retention jobs, monitoring, external security scanning, performance testing, Kubernetes validation, and V2 business systems remain separate later tracks.
 
 ## 6. P0-3 First Validation Run
 

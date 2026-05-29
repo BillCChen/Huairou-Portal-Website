@@ -67,6 +67,7 @@ from app.services.account_notifications import (
 )
 from app.services.password_reset import confirm_password_reset, create_password_reset_request
 from app.services.password_policy import validate_password_policy
+from app.services.request_context import RequestMeta, current_request_meta, extract_request_meta, get_client_ip, get_user_agent
 
 
 router = APIRouter()
@@ -202,7 +203,12 @@ def write_audit_log(
     object_type: str,
     object_id: str | None,
     detail: dict | None = None,
+    *,
+    result: str = "success",
+    failure_reason: str | None = None,
+    request_meta: RequestMeta | None = None,
 ):
+    meta = request_meta or current_request_meta()
     db.add(
         AuditLog(
             user_id=user_id,
@@ -211,7 +217,51 @@ def write_audit_log(
             object_type=object_type,
             object_id=object_id,
             detail_json=detail or {},
+            ip_address=meta.ip_address,
+            user_agent=meta.user_agent,
+            path=meta.path,
+            method=meta.method,
+            result=result,
+            failure_reason=failure_reason,
         )
+    )
+
+
+def write_login_log(
+    db: Session,
+    *,
+    user_id: int | None,
+    username: str | None,
+    login_method: str,
+    success: bool,
+    request: Request,
+    failure_reason: str | None = None,
+) -> None:
+    meta = extract_request_meta(request)
+    db.add(
+        LoginLog(
+            user_id=user_id,
+            username=username,
+            login_method=login_method,
+            ip_address=meta.ip_address,
+            user_agent=meta.user_agent,
+            path=meta.path,
+            method=meta.method,
+            success=success,
+            failure_reason=failure_reason,
+        )
+    )
+    write_audit_log(
+        db,
+        user_id,
+        "auth",
+        "login_success" if success else "login_failure",
+        "login",
+        username,
+        {"login_method": login_method},
+        result="success" if success else "failure",
+        failure_reason=failure_reason,
+        request_meta=meta,
     )
 
 
@@ -269,6 +319,17 @@ def serialize_admin_user(user: User) -> dict:
 
 def serialize_current_user(user: User) -> dict:
     return serialize_admin_user(user)
+
+
+def serialize_audit_log(log: AuditLog, actor: User | None = None) -> dict:
+    data = encode(log)
+    data["actor_username"] = actor.username if actor else None
+    data["actor_real_name"] = actor.real_name if actor else None
+    return data
+
+
+def serialize_login_log(log: LoginLog) -> dict:
+    return encode(log)
 
 
 def get_role_by_code(db: Session, role_code: str) -> Role:
@@ -519,8 +580,8 @@ def request_password_reset(payload: PasswordResetRequestIn, request: Request, db
     data = create_password_reset_request(
         db,
         email_or_username=payload.email_or_username,
-        request_ip=request.client.host if request.client else None,
-        user_agent=request.headers.get("user-agent"),
+        request_ip=get_client_ip(request),
+        user_agent=get_user_agent(request),
     )
     return APIResponse(data=data)
 
@@ -533,12 +594,29 @@ def confirm_password_reset_route(payload: PasswordResetConfirmIn, db: Session = 
 @router.post(f"{settings.api_prefix}/auth/login/password", response_model=APIResponse)
 def login_password(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
     user = db.scalar(select(User).where(User.username == payload.username))
-    if not user or not verify_password(payload.password, user.password_hash) or user.status != "active":
-        db.add(LoginLog(username=payload.username, login_method="password", ip_address=request.client.host if request.client else None, success=False))
+    password_ok = bool(user and verify_password(payload.password, user.password_hash))
+    if not user or not password_ok or user.status != "active":
+        failure_reason = "inactive_user" if user and password_ok and user.status != "active" else "invalid_credentials"
+        write_login_log(
+            db,
+            user_id=user.id if user else None,
+            username=payload.username,
+            login_method="password",
+            success=False,
+            request=request,
+            failure_reason=failure_reason,
+        )
         db.commit()
         raise HTTPException(status_code=400, detail="Invalid credentials")
     token = create_access_token(str(user.id))
-    db.add(LoginLog(user_id=user.id, username=user.username, login_method="password", ip_address=request.client.host if request.client else None, success=True))
+    write_login_log(
+        db,
+        user_id=user.id,
+        username=user.username,
+        login_method="password",
+        success=True,
+        request=request,
+    )
     db.commit()
     return APIResponse(data={"access_token": token, "token_type": "bearer", "user": serialize_current_user(user)})
 
@@ -578,6 +656,15 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
     db.add(user)
     db.flush()
     db.add(RegistrationApplication(user_id=user.id, review_status="pending"))
+    write_audit_log(
+        db,
+        user.id,
+        "auth",
+        "registration_submitted",
+        "user",
+        str(user.id),
+        {"status": "pending"},
+    )
     send_registration_submitted_notification(db, user)
     db.commit()
     return APIResponse(data={"status": "pending_review", "user_id": user.id})
@@ -1175,14 +1262,58 @@ def admin_list_service_requests(
 def admin_audit_logs(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    ip: str | None = None,
+    username: str | None = None,
+    action: str | None = None,
+    module: str | None = None,
     _: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     query = select(AuditLog).order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
-    return APIResponse(data=encode(paginate(query, db, page, page_size)))
+    if ip and ip.strip():
+        query = query.where(AuditLog.ip_address.ilike(f"%{ip.strip()}%"))
+    if action and action.strip():
+        query = query.where(AuditLog.action.ilike(f"%{action.strip()}%"))
+    if module and module.strip():
+        query = query.where(AuditLog.module.ilike(f"%{module.strip()}%"))
+    if username and username.strip():
+        keyword = f"%{username.strip()}%"
+        actor_ids = select(User.id).where(
+            or_(
+                User.username.ilike(keyword),
+                User.real_name.ilike(keyword),
+                User.email.ilike(keyword),
+                User.mobile.ilike(keyword),
+            )
+        )
+        query = query.where(AuditLog.user_id.in_(actor_ids))
+    result = paginate(query, db, page, page_size)
+    actor_ids = {item.user_id for item in result["items"] if item.user_id}
+    actors = {user.id: user for user in db.scalars(select(User).where(User.id.in_(actor_ids))).all()} if actor_ids else {}
+    result["items"] = [serialize_audit_log(item, actors.get(item.user_id)) for item in result["items"]]
+    return APIResponse(data=result)
 
 
 @router.get(f"{settings.api_prefix}/admin/login-logs", response_model=APIResponse)
-def admin_login_logs(_: User = Depends(require_admin), db: Session = Depends(get_db)):
-    logs = db.scalars(select(LoginLog).order_by(LoginLog.created_at.desc()).limit(200)).all()
-    return APIResponse(data=encode(logs))
+def admin_login_logs(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    ip: str | None = None,
+    username: str | None = None,
+    action: str | None = None,
+    success: bool | None = None,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    query = select(LoginLog).order_by(LoginLog.created_at.desc(), LoginLog.id.desc())
+    if ip and ip.strip():
+        query = query.where(LoginLog.ip_address.ilike(f"%{ip.strip()}%"))
+    if username and username.strip():
+        query = query.where(LoginLog.username.ilike(f"%{username.strip()}%"))
+    if action and action.strip():
+        query = query.where(LoginLog.login_method.ilike(f"%{action.strip()}%"))
+    if success is not None:
+        query = query.where(LoginLog.success.is_(success))
+    result = paginate(query, db, page, page_size)
+    result["items"] = [serialize_login_log(item) for item in result["items"]]
+    return APIResponse(data=result)
