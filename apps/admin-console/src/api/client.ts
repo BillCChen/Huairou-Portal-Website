@@ -2,6 +2,7 @@ import axios from "axios";
 
 const token = () => localStorage.getItem("portal_admin_token");
 const localHosts = new Set(["localhost", "127.0.0.1"]);
+export const ADMIN_AUTH_EXPIRED_EVENT = "portal-admin-auth-expired";
 
 const resolveApiBase = () => {
   const fallback = "http://localhost:8100/api/v1";
@@ -35,6 +36,19 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+export const isAdminUnauthorizedError = (error: unknown) => axios.isAxiosError(error) && error.response?.status === 401;
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (isAdminUnauthorizedError(error)) {
+      localStorage.removeItem("portal_admin_token");
+      window.dispatchEvent(new Event(ADMIN_AUTH_EXPIRED_EVENT));
+    }
+    return Promise.reject(error);
+  },
+);
 
 export const unwrap = async <T>(request: Promise<{ data: { data: T } }>) => {
   const response = await request;

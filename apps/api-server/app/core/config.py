@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     app_name: str = "Portal Website API"
     api_prefix: str = "/api/v1"
     secret_key: str = "change-this-in-production"
-    access_token_expire_minutes: int = 60 * 8
+    access_token_expire_minutes: int = Field(default=180, ge=1)
     database_url: str = f"sqlite:///{(DATA_DIR / 'portal_test.db').as_posix()}"
     cors_origins: str = "http://localhost:3100,http://127.0.0.1:3100,http://localhost:5174,http://127.0.0.1:5174"
     storage_root: str = str(DATA_DIR / "files")

@@ -10,9 +10,7 @@ onMounted(async () => {
   try {
     me.value = await getCurrentPortalUser();
   } catch (error: any) {
-    if ((error?.statusCode || error?.status) === 401) {
-      clearPortalSession();
-      await navigateTo("/login");
+    if (isPortalUnauthorizedError(error)) {
       return;
     }
     errorMessage.value = error?.data?.message || error?.data?.detail || error?.message || "无法获取用户信息";

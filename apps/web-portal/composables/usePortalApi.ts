@@ -61,11 +61,44 @@ export function getPortalErrorMessage(error: unknown, fallback = "数据加载�
   return fallback;
 }
 
+export const isPortalUnauthorizedError = (error: unknown) => {
+  if (!isRecord(error)) {
+    return false;
+  }
+  const statusCode = error["statusCode"] ?? error["status"];
+  if (statusCode === 401) {
+    return true;
+  }
+  const response = error["response"];
+  if (!isRecord(response)) {
+    return false;
+  }
+  return response["status"] === 401 || response["statusCode"] === 401;
+};
+
+export const handlePortalAuthExpired = async () => {
+  if (!import.meta.client) {
+    return;
+  }
+  clearPortalSession();
+  const route = useRoute();
+  if (route.path !== "/login") {
+    await navigateTo({ path: "/login", query: { reason: "expired" } });
+  }
+};
+
 export const usePortalApi = async <T>(path: string, options: Record<string, unknown> = {}) => {
   const config = useRuntimeConfig();
   const apiBase = resolveApiBase(String(config.public.apiBase || ""));
-  const response = await $fetch<{ code: number; message: string; data: T }>(`${apiBase}${path}`, options);
-  return response.data;
+  try {
+    const response = await $fetch<{ code: number; message: string; data: T }>(`${apiBase}${path}`, options);
+    return response.data;
+  } catch (error) {
+    if (isPortalUnauthorizedError(error)) {
+      await handlePortalAuthExpired();
+    }
+    throw error;
+  }
 };
 
 export type PortalUser = {

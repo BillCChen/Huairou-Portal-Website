@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Document, Files, House, PictureFilled, Setting, User } from "@element-plus/icons-vue";
 import { computed } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 import { useAuthStore } from "../stores/auth";
 
 const route = useRoute();
+const router = useRouter();
 const auth = useAuthStore();
 
 type MenuLeaf = { path: string; label: string; icon: any };
@@ -35,6 +36,11 @@ const menus = computed<MenuItem[]>(() => [
   { path: "/audit-logs", label: "审计日志", icon: Document },
   { path: "/settings", label: "站点设置", icon: Setting },
 ]);
+
+const logout = () => {
+  auth.logout();
+  router.push("/login");
+};
 </script>
 
 <template>
@@ -70,7 +76,7 @@ const menus = computed<MenuItem[]>(() => [
         <div style="margin-top: auto; padding-top: 24px; border-top: 1px solid #e2e8f0;">
           <div style="font-size: 14px; font-weight: 600;">{{ auth.user?.real_name }}</div>
           <div style="font-size: 12px; color: #64748b; margin-top: 4px;">管理员会话</div>
-          <el-button style="margin-top: 16px;" plain @click="auth.logout()">退出登录</el-button>
+          <el-button style="margin-top: 16px;" plain @click="logout">退出登录</el-button>
         </div>
       </div>
     </el-aside>

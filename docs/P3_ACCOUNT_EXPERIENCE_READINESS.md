@@ -10,7 +10,7 @@
 
 本 readiness 不覆盖：
 
-- P3-C 3 小时静默过期。
+- P3-C 3 小时静默过期的服务器部署与生产验证。
 - IP 审计。
 - 文件加密。
 - 病毒扫描。
@@ -91,5 +91,5 @@ P3-B3 本地收束运行以下非真实 SMTP 验证：
 
 建议下一阶段二选一：
 
-- P3-C：3 小时静默过期 / 登录态回收。
+- P3-C：本地会话过期 / 登录态回收已在 `docs/P3_SESSION_EXPIRY.md` 记录；后续仍需用户授权后再做 push/deployment。
 - P3-A/B/B2 merge-readiness push/deployment，需用户另行授权。

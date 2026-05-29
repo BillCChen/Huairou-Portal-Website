@@ -55,6 +55,7 @@
 - P3-A 已新增账号体验与密码策略本地开发：注册、邮件密码重置确认、管理员创建用户统一使用 8–20 位且 4 类中至少 3 类的密码策略；密码重置确认拒绝当前相同密码；前台注册成功后返回首页并显示“注册已提交，等待审核，注意查收邮件”；Header 展示登录态；`/profile` 提供最小只读个人中心。P3-A 不发送真实邮件、不修改 SMS、不修改服务器部署、不进入 V2。
 - P3-B2 已完成账号邮件通知本地真实 SMTP UAT：注册提交、审核通过、审核拒绝、管理员创建机构用户和密码修改成功五类通知均已发送并由用户确认收到；审核拒绝 reason 已确认送达；未提交 SMTP password、完整邮箱、token、reset link 或密码。本阶段不 push、不部署服务器、不修改 SMS/SSO/部署配置。
 - P3-B3 记录 P3-A/P3-B/P3-B2 本地 readiness 收束：新增 `docs/P3_ACCOUNT_EXPERIENCE_READINESS.md`，本轮只做文档与本地非真实 SMTP 验证，不重发真实邮件、不 push、不部署服务器。下一步建议进入 P3-C 3 小时静默过期，或在用户另行授权后做 P3 merge-readiness / push / deployment。
+- P3-C 已新增会话过期与登录态回收本地开发：`ACCESS_TOKEN_EXPIRE_MINUTES` 默认 180 分钟，后端 JWT `exp` 过期返回 401；Portal 前台和 Admin Console 遇到认证 401 会清理本地登录态并跳转登录页；新增 1 分钟过期 smoke。本阶段不引入 refresh token、token blacklist 或多端互踢，不修改 SMS/SSO，不发送邮件，不部署服务器。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
 
@@ -222,6 +223,20 @@ P3-B3 is a local-only readiness closure for P3-A, P3-B, and P3-B2. It does not c
 | Security boundary | RECORDED | No SMTP password, full recipient email, token, reset link, or password is committed. |
 
 P3-B3 still does not mean production release readiness. P3-C session-expiry UX, server deployment of account notifications, HTML templates, account settings, password history, IP audit, file security, monitoring, performance testing, external security scanning, formal migrations, Kubernetes validation, and V2 business systems remain separate later tracks.
+
+## 5j. P3-C Session Expiry and Login State Recovery
+
+P3-C is a local-only session expiry stage. It does not deploy to ECS, does not push, does not change SMS/SSO, does not send email, and does not add refresh tokens, token blacklist, or multi-device logout.
+
+| Check | Status | Notes |
+|---|---|---|
+| Access token lifetime | UPDATED | `ACCESS_TOKEN_EXPIRE_MINUTES` defaults to 180 minutes. |
+| Backend JWT expiry | VERIFIED | Expired JWT access tokens are rejected by protected endpoints with 401. |
+| Portal frontend recovery | UPDATED | Authenticated API 401 clears Portal token/user state and redirects to `/login?reason=expired`. |
+| Admin recovery | UPDATED | Admin API 401 clears admin token/user state and redirects to `/login?reason=expired`. |
+| Backend smoke | ADDED | `scripts/smoke_session_expiry_backend.sh` uses a 1-minute token lifetime and verifies 401 after waiting 70 seconds. |
+
+P3-C still does not mean production release readiness. Server deployment, account notification deployment, HTML templates, account settings, password history, IP audit, file security, monitoring, performance testing, external security scanning, formal migrations, Kubernetes validation, and V2 business systems remain separate later tracks.
 
 ## 6. P0-3 First Validation Run
 

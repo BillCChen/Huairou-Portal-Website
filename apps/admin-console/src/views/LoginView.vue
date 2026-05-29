@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { ElMessage } from "element-plus";
-import { reactive } from "vue";
-import { useRouter } from "vue-router";
+import { computed, reactive } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 import { useAuthStore } from "../stores/auth";
 
 const router = useRouter();
+const route = useRoute();
 const auth = useAuthStore();
 const form = reactive({
   username: "admin",
   password: "ChangeMe123!",
 });
+const expiredMessage = computed(() => (route.query.reason === "expired" ? "登录已过期，请重新登录。" : ""));
 
 const submit = async () => {
   try {
@@ -29,6 +31,14 @@ const submit = async () => {
     <div class="content-card" style="width: min(460px, 100%); padding: 36px;">
       <div style="font-size: 28px; font-weight: 700;">门户网站管理后台</div>
       <div style="margin-top: 8px; color: #64748b;">默认管理员账号已由后端初始化，可直接用于本地演示。</div>
+      <el-alert
+        v-if="expiredMessage"
+        :title="expiredMessage"
+        type="warning"
+        show-icon
+        :closable="false"
+        style="margin-top: 20px;"
+      />
       <el-form style="margin-top: 28px;" label-position="top">
         <el-form-item label="用户名">
           <el-input v-model="form.username" />

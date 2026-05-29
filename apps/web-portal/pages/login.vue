@@ -2,6 +2,8 @@
 const tab = ref<"password" | "sms">("password");
 const loading = ref(false);
 const errorMessage = ref("");
+const route = useRoute();
+const expiredMessage = computed(() => (route.query.reason === "expired" ? "登录已过期，请重新登录。" : ""));
 
 const form = reactive({
   username: "",
@@ -43,6 +45,12 @@ useSeoMeta({
       <div class="badge">Authentication</div>
       <h1 class="section-title" style="font-size: 36px; margin-top: 18px;">用户登录</h1>
       <p class="section-desc">请输入账号凭据登录门户服务。</p>
+      <div
+        v-if="expiredMessage"
+        style="margin-top: 18px; color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 14px; padding: 14px 16px;"
+      >
+        {{ expiredMessage }}
+      </div>
       <div style="display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap;">
         <button class="button" :class="{ secondary: tab !== 'password' }" @click="tab = 'password'">账号密码登录</button>
         <button class="button" :class="{ secondary: tab !== 'sms' }" @click="tab = 'sms'">手机号验证码登录</button>

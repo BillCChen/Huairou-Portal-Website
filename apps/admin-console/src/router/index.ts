@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 
+import { ADMIN_AUTH_EXPIRED_EVENT } from "../api/client";
 import { useAuthStore } from "../stores/auth";
 import DashboardView from "../views/DashboardView.vue";
 import FilesView from "../views/FilesView.vue";
@@ -42,6 +43,9 @@ router.beforeEach(async (to) => {
   const store = useAuthStore();
   if (!store.user && store.token) {
     await store.restore();
+    if (!store.token && !to.meta.public) {
+      return { path: "/login", query: { reason: "expired" } };
+    }
   }
   if (!to.meta.public && !store.token) {
     return "/login";
@@ -51,5 +55,15 @@ router.beforeEach(async (to) => {
   }
   return true;
 });
+
+if (typeof window !== "undefined") {
+  window.addEventListener(ADMIN_AUTH_EXPIRED_EVENT, () => {
+    const store = useAuthStore();
+    store.logout();
+    if (router.currentRoute.value.path !== "/login") {
+      router.push({ path: "/login", query: { reason: "expired" } });
+    }
+  });
+}
 
 export default router;
