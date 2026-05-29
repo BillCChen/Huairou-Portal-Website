@@ -53,6 +53,7 @@
 - P2-B2 已新增部署镜像源兼容：生产 Dockerfile 基础镜像可通过 build args 配置，`docker-compose.prod.yml` 可从服务器本地 `.env.production` 传入 ECR Public Docker Official Images 路径。本阶段不修改业务逻辑，服务器仍需 pull 后重新运行 compose。
 - P2-B3 已修正 admin 容器 runtime Nginx SSL 边界：admin 容器内部只提供 HTTP 静态站点，HTTPS 终止继续由宿主机 Nginx 负责。本阶段不修改业务逻辑。
 - P3-A 已新增账号体验与密码策略本地开发：注册、邮件密码重置确认、管理员创建用户统一使用 8–20 位且 4 类中至少 3 类的密码策略；密码重置确认拒绝当前相同密码；前台注册成功后返回首页并显示“注册已提交，等待审核，注意查收邮件”；Header 展示登录态；`/profile` 提供最小只读个人中心。P3-A 不发送真实邮件、不修改 SMS、不修改服务器部署、不进入 V2。
+- P3-B2 已完成账号邮件通知本地真实 SMTP UAT：注册提交、审核通过、审核拒绝、管理员创建机构用户和密码修改成功五类通知均已发送并由用户确认收到；审核拒绝 reason 已确认送达；未提交 SMTP password、完整邮箱、token、reset link 或密码。本阶段不 push、不部署服务器、不修改 SMS/SSO/部署配置。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
 
@@ -191,6 +192,22 @@ P3-B is a local-only account email notification stage. It does not deploy to ECS
 | Backend smoke | ADDED | `scripts/smoke_account_notifications_backend.sh` validates local `dev_outbox` events and secret boundaries. |
 
 P3-B still does not mean production release readiness. Real SMTP production-domain UAT, HTML email templates, account settings, password history, session-expiry UX, performance testing, external security scanning, formal migrations, Kubernetes validation, and V2 business systems remain separate later tracks.
+
+## 5h. P3-B2 Account Email Notification SMTP UAT
+
+P3-B2 is a local-only real SMTP UAT stage for account email notifications. It does not deploy to ECS, does not push, does not change SMS/SSO, and does not modify deployment templates.
+
+| Check | Status | Notes |
+|---|---|---|
+| SMTP UAT script | ADDED | `scripts/smoke_account_notifications_smtp_uat.sh` uses runtime SMTP credentials and a controlled recipient outside the repository. |
+| Registration submitted email | PASS | Real SMTP delivery confirmed by user mailbox check. |
+| Approval email | PASS | Real SMTP delivery confirmed by user mailbox check. |
+| Rejection email | PASS | Real SMTP delivery confirmed; formatted reason was received. |
+| Admin-created user email | PASS | Real SMTP delivery confirmed; no initial password anomaly reported. |
+| Password changed email | PASS | Real SMTP delivery confirmed; no token/reset-link anomaly reported. |
+| Secret handling | PASS | No SMTP password, full recipient email, token, full reset link, or password is committed. |
+
+P3-B2 still does not mean production release readiness. Server deployment of P3-B notifications, HTML templates, account settings, password history, session-expiry UX, performance testing, external security scanning, formal migrations, Kubernetes validation, and V2 business systems remain separate later tracks.
 
 ## 6. P0-3 First Validation Run
 

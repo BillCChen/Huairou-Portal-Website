@@ -48,9 +48,9 @@ P3-B 不修改 password reset token/hash/expiry/consumed 语义。
 |---|---|
 | `dev_outbox` | 写入本地 ignored outbox，用于 smoke 验证 |
 | `disabled` | 不发送邮件，主业务流程继续 |
-| `smtp` | 保留 provider 能力，但本阶段不启用、不发送真实邮件 |
+| `smtp` | 保留 provider 能力；P3-B2 已在本地真实 SMTP UAT 中验证 |
 
-真实 SMTP 域名 UAT 应在后续独立阶段执行。
+真实 SMTP 生产部署仍应在后续独立阶段执行。
 
 ## 8. 本地验证
 
@@ -62,10 +62,21 @@ PORTAL_BACKEND_PYTHON=python3.11 ./scripts/smoke_account_notifications_backend.s
 
 该 smoke 使用隔离 SQLite runtime 和 `dev_outbox`，覆盖注册提交、审核通过、审核拒绝 reason 校验、管理员创建账号、密码修改成功通知，并验证管理员创建账号邮件不包含初始密码。
 
+P3-B2 新增真实 SMTP UAT 脚本：
+
+```bash
+PORTAL_BACKEND_PYTHON=python3.11 \
+PORTAL_SMTP_PASSWORD_FILE=/Users/billchen/Documents/cursor-project/HuaiRou-Agents/aliyun_direct_mail_smtp_password.txt \
+PORTAL_SMTP_UAT_CONFIRM_SEND=true \
+./scripts/smoke_account_notifications_smtp_uat.sh
+```
+
+该脚本要求 SMTP password 和受控收件邮箱均来自仓库外运行时文件或环境变量，并只输出脱敏收件人。P3-B2 验证了注册提交、审核通过、审核拒绝、管理员创建账号和密码修改成功五类账号通知的真实 SMTP 投递。
+
 ## 9. 未做事项
 
-- 未发送真实邮件。
-- 未启用 SMTP。
+- P3-B 阶段未发送真实邮件；P3-B2 已完成本地真实 SMTP UAT。
+- P3-B 阶段未启用 SMTP；P3-B2 仅在本地 UAT 运行时启用 SMTP。
 - 未修改 SMS verification login 或真实 SMS provider。
 - 未修改 SSO。
 - 未修改部署配置。
