@@ -18,12 +18,11 @@ const submit = async () => {
     const payload = tab.value === "password"
       ? { username: form.username, password: form.password }
       : { mobile: form.mobile, code: form.code };
-    const response = await usePortalApi<{ access_token: string; user: Record<string, unknown> }>(path, {
+    const response = await usePortalApi<{ access_token: string; user: PortalUser }>(path, {
       method: "POST",
       body: payload,
     });
-    localStorage.setItem("portal_token", response.access_token);
-    localStorage.setItem("portal_user", JSON.stringify(response.user));
+    setPortalSession(response.access_token, response.user);
     await navigateTo("/profile");
   } catch (error: unknown) {
     errorMessage.value = getPortalErrorMessage(error, "登录失败");

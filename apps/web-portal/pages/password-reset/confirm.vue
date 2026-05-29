@@ -24,8 +24,8 @@ const submit = async () => {
     errorMessage.value = "链接无效或缺少 token";
     return;
   }
-  if (form.newPassword.length < 8) {
-    errorMessage.value = "新密码长度不能少于 8 位";
+  if (!isPasswordPolicyCompliant(form.newPassword)) {
+    errorMessage.value = passwordPolicyHint;
     return;
   }
   if (form.newPassword !== form.confirmPassword) {
@@ -91,6 +91,7 @@ useSeoMeta({
               autocomplete="new-password"
               :disabled="loading || success"
             />
+            <div style="margin-top: 8px; color: #64748b; font-size: 13px; line-height: 1.5;">{{ passwordPolicyHint }}</div>
           </label>
           <label>
             <div style="margin-bottom: 8px;">确认新密码</div>

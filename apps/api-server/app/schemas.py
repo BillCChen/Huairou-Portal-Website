@@ -41,7 +41,7 @@ class RegisterRequest(BaseModel):
     mobile: str
     email: EmailStr | None = None
     expertise: str
-    password: str = Field(min_length=8)
+    password: str = Field(min_length=8, max_length=20)
 
 
 class UserOut(BaseModel):
@@ -56,6 +56,8 @@ class UserOut(BaseModel):
     expertise: str | None
     status: str
     role_id: int
+    role_code: str | None = None
+    role_name: str | None = None
     created_at: datetime
 
 
@@ -152,7 +154,7 @@ class AdminUserCreateIn(BaseModel):
     real_name: str = Field(min_length=1, max_length=100)
     organization: str | None = Field(default=None, max_length=255)
     expertise: str | None = Field(default=None, max_length=255)
-    password: str = Field(min_length=8, max_length=128)
+    password: str = Field(min_length=8, max_length=20)
     role_code: str = "institute_editor"
 
 
@@ -186,7 +188,7 @@ class PasswordResetRequestIn(BaseModel):
 
 class PasswordResetConfirmIn(BaseModel):
     token: str = Field(min_length=20, max_length=512)
-    new_password: str = Field(min_length=8, max_length=128)
+    new_password: str = Field(min_length=8, max_length=20)
 
 
 class DownloadResourceIn(BaseModel):

@@ -37,7 +37,6 @@ from app.schemas import (
     APIResponse,
     AdminUserCreateIn,
     ArticleIn,
-    AuthTokenOut,
     BannerIn,
     CaseIn,
     CategoryIn,
@@ -61,6 +60,7 @@ from app.schemas import (
     UserRoleUpdateIn,
 )
 from app.services.password_reset import confirm_password_reset, create_password_reset_request
+from app.services.password_policy import validate_password_policy
 
 
 router = APIRouter()
@@ -259,6 +259,10 @@ def serialize_admin_user(user: User) -> dict:
     data["role_code"] = user.role.code if user.role else None
     data["role_name"] = user.role.name if user.role else None
     return data
+
+
+def serialize_current_user(user: User) -> dict:
+    return serialize_admin_user(user)
 
 
 def get_role_by_code(db: Session, role_code: str) -> Role:
@@ -530,7 +534,7 @@ def login_password(payload: LoginRequest, request: Request, db: Session = Depend
     token = create_access_token(str(user.id))
     db.add(LoginLog(user_id=user.id, username=user.username, login_method="password", ip_address=request.client.host if request.client else None, success=True))
     db.commit()
-    return APIResponse(data=AuthTokenOut(access_token=token, user=UserOut.model_validate(user)))
+    return APIResponse(data={"access_token": token, "token_type": "bearer", "user": serialize_current_user(user)})
 
 
 @router.post(f"{settings.api_prefix}/auth/login/sms", response_model=APIResponse)
@@ -543,11 +547,12 @@ def login_sms(payload: SmsLoginRequest, request: Request, db: Session = Depends(
     token = create_access_token(str(user.id))
     db.add(LoginLog(user_id=user.id, username=user.username, login_method="sms", ip_address=request.client.host if request.client else None, success=True))
     db.commit()
-    return APIResponse(data=AuthTokenOut(access_token=token, user=UserOut.model_validate(user)))
+    return APIResponse(data={"access_token": token, "token_type": "bearer", "user": serialize_current_user(user)})
 
 
 @router.post(f"{settings.api_prefix}/auth/register", response_model=APIResponse)
 def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
+    validate_password_policy(payload.password)
     if db.scalar(select(User).where(User.mobile == payload.mobile)):
         raise HTTPException(status_code=400, detail="Mobile already registered")
     role = db.scalar(select(Role).where(Role.code == "registered_user"))
@@ -573,7 +578,7 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
 
 @router.get(f"{settings.api_prefix}/auth/me", response_model=APIResponse)
 def get_me(current_user: User = Depends(get_current_user)):
-    return APIResponse(data=UserOut.model_validate(current_user))
+    return APIResponse(data=serialize_current_user(current_user))
 
 
 @router.get(f"{settings.api_prefix}/admin/dashboard", response_model=APIResponse)
@@ -965,6 +970,7 @@ def admin_list_pending_users(_: User = Depends(require_admin), db: Session = Dep
 
 @router.post(f"{settings.api_prefix}/admin/users", response_model=APIResponse)
 def admin_create_user(payload: AdminUserCreateIn, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    validate_password_policy(payload.password)
     role_code = payload.role_code.strip()
     if role_code not in CREATE_USER_ROLE_CODES:
         raise HTTPException(status_code=400, detail="Role is not allowed for institution user creation")

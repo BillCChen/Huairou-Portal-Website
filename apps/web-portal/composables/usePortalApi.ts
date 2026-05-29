@@ -68,6 +68,67 @@ export const usePortalApi = async <T>(path: string, options: Record<string, unkn
   return response.data;
 };
 
+export type PortalUser = {
+  id: number;
+  username?: string | null;
+  mobile?: string | null;
+  email?: string | null;
+  real_name?: string | null;
+  organization?: string | null;
+  expertise?: string | null;
+  status?: string | null;
+  role_id?: number | null;
+  role_code?: string | null;
+  role_name?: string | null;
+};
+
+export const passwordPolicyHint = "密码需为 8–20 位，并至少包含大写字母、小写字母、数字、特殊字符中的 3 类。";
+
+export const isPasswordPolicyCompliant = (password: string) => {
+  const classes = [
+    /[A-Z]/.test(password),
+    /[a-z]/.test(password),
+    /\d/.test(password),
+    /[^A-Za-z0-9]/.test(password),
+  ].filter(Boolean).length;
+  return password.length >= 8 && password.length <= 20 && classes >= 3;
+};
+
+export const getPortalToken = () => {
+  if (!import.meta.client) {
+    return null;
+  }
+  return localStorage.getItem("portal_token");
+};
+
+export const setPortalSession = (token: string, user: PortalUser) => {
+  if (!import.meta.client) {
+    return;
+  }
+  localStorage.setItem("portal_token", token);
+  localStorage.setItem("portal_user", JSON.stringify(user));
+  window.dispatchEvent(new Event("portal-auth-changed"));
+};
+
+export const clearPortalSession = () => {
+  if (!import.meta.client) {
+    return;
+  }
+  localStorage.removeItem("portal_token");
+  localStorage.removeItem("portal_user");
+  window.dispatchEvent(new Event("portal-auth-changed"));
+};
+
+export const getCurrentPortalUser = async () => {
+  const token = getPortalToken();
+  if (!token) {
+    return null;
+  }
+  return usePortalApi<PortalUser>("/auth/me", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+};
+
 export type PasswordResetRequestPayload = {
   email_or_username: string;
 };

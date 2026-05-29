@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const route = useRoute();
 const router = useRouter();
+const registrationNoticeVisible = ref(false);
 
 const NEWS_CATEGORY_SCOPES = [
   { key: "internal", label: "院内新闻", fallbackSlug: "院内新闻", aliases: ["院内新闻", "institution-news", "institution", "internal-news"] },
@@ -165,6 +166,15 @@ watch(
 );
 
 onMounted(startCarousel);
+onMounted(async () => {
+  if (route.query.registered !== "pending") {
+    return;
+  }
+  registrationNoticeVisible.value = true;
+  const query = { ...route.query };
+  delete query.registered;
+  await router.replace({ path: route.path, query });
+});
 onBeforeUnmount(stopCarousel);
 
 const searchKeyword = ref(keyword.value);
@@ -273,6 +283,12 @@ useSeoMeta({
 
 <template>
   <div class="home-page">
+    <div
+      v-if="registrationNoticeVisible"
+      class="home-registration-notice"
+    >
+      注册已提交，等待审核，注意查收邮件
+    </div>
     <section class="hero-shell">
       <div class="hero-bg-grid" aria-hidden="true" />
       <svg class="hero-dna hero-dna--left" viewBox="0 0 160 100" aria-hidden="true">
@@ -540,6 +556,17 @@ useSeoMeta({
   background: var(--paper);
   color: var(--ink);
   font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", Arial, sans-serif;
+}
+
+.home-registration-notice {
+  margin: 0 auto;
+  padding: 12px 24px;
+  background: #ecfeff;
+  border-bottom: 1px solid #99f6e4;
+  color: #0f766e;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
 }
 
 .hero-shell {

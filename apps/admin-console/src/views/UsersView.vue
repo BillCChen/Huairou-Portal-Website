@@ -37,6 +37,7 @@ const statusFilter = ref("");
 const loading = ref(false);
 const createDialogVisible = ref(false);
 const creating = ref(false);
+const passwordPolicyHint = "密码需为 8–20 位，并至少包含大写字母、小写字母、数字、特殊字符中的 3 类。";
 
 const createForm = reactive<AdminUserCreatePayload>({
   username: "",
@@ -331,6 +332,9 @@ onMounted(async () => {
         </el-form-item>
         <el-form-item label="初始密码">
           <el-input v-model="createForm.password" type="password" show-password autocomplete="new-password" />
+          <div style="margin-top: 6px; color: #64748b; font-size: 12px; line-height: 1.5;">
+            {{ passwordPolicyHint }}
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>

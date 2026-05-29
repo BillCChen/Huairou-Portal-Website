@@ -167,7 +167,7 @@ from app.core.config import settings
 base_url = os.environ["BASE_URL"]
 suffix = str(int(time.time()))
 admin_password = settings.admin_password
-ordinary_password = f"Auth{secrets.token_urlsafe(12)}A1!"
+ordinary_password = f"Auth{secrets.randbelow(1_000_000):06d}Aa!"
 ordinary_mobile = f"157{suffix[-8:]}"
 ordinary_email = f"auth-{suffix}@example.com"
 responses: list[str] = []

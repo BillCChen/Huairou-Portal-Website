@@ -43,7 +43,7 @@ export const unwrap = async <T>(request: Promise<{ data: { data: T } }>) => {
 
 export const getApiErrorMessage = (error: unknown, fallback = "操作失败") => {
   if (axios.isAxiosError(error)) {
-    const message = error.response?.data?.message;
+    const message = error.response?.data?.message || error.response?.data?.detail;
     if (typeof message === "string" && message.trim()) {
       return message;
     }

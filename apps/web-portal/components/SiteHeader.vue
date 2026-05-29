@@ -1,5 +1,7 @@
 <script setup lang="ts">
 const route = useRoute();
+const currentUser = ref<any>(null);
+const authReady = ref(false);
 
 type NavItem = {
   label: string;
@@ -40,6 +42,24 @@ const groupedNavItems: Array<{ label: string; items: NavItem[] }> = [
 const openGroups = reactive<Record<string, boolean>>({});
 const hoverOpenTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const hoverCloseTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+const roleLabels: Record<string, string> = {
+  super_admin: "超级管理员",
+  content_admin: "内容管理员",
+  auditor: "审核员",
+  institute_editor: "机构用户",
+  registered_user: "注册用户",
+};
+
+const displayName = computed(() => currentUser.value?.real_name || currentUser.value?.username || "用户");
+const displayRole = computed(() => {
+  const roleName = currentUser.value?.role_name;
+  if (roleName) {
+    return roleName;
+  }
+  const roleCode = currentUser.value?.role_code;
+  return roleCode ? roleLabels[roleCode] || roleCode : "用户";
+});
 
 const clearOpenTimer = (label: string) => {
   const timer = hoverOpenTimers.get(label);
@@ -94,11 +114,39 @@ const isActive = (to?: string) => {
   return to === "/" ? route.path === "/" : route.path.startsWith(to);
 };
 
+const loadCurrentUser = async () => {
+  if (!import.meta.client) {
+    return;
+  }
+  try {
+    currentUser.value = await getCurrentPortalUser();
+  } catch {
+    clearPortalSession();
+    currentUser.value = null;
+  } finally {
+    authReady.value = true;
+  }
+};
+
+const logout = async () => {
+  clearPortalSession();
+  currentUser.value = null;
+  await navigateTo("/");
+};
+
+onMounted(() => {
+  loadCurrentUser();
+  window.addEventListener("portal-auth-changed", loadCurrentUser);
+});
+
 onBeforeUnmount(() => {
   hoverOpenTimers.forEach((timer) => clearTimeout(timer));
   hoverCloseTimers.forEach((timer) => clearTimeout(timer));
   hoverOpenTimers.clear();
   hoverCloseTimers.clear();
+  if (import.meta.client) {
+    window.removeEventListener("portal-auth-changed", loadCurrentUser);
+  }
 });
 </script>
 
@@ -169,7 +217,16 @@ onBeforeUnmount(() => {
             </div>
           </div>
         </div>
-        <NuxtLink to="/login" class="site-header__login">登录</NuxtLink>
+        <div v-if="authReady && currentUser" class="site-header__account">
+          <span class="site-header__account-name">{{ displayName }}</span>
+          <span class="site-header__role">{{ displayRole }}</span>
+          <NuxtLink to="/profile" class="site-header__account-link">个人中心</NuxtLink>
+          <button type="button" class="site-header__logout" @click="logout">退出</button>
+        </div>
+        <div v-else class="site-header__auth-links">
+          <NuxtLink to="/login" class="site-header__login">登录</NuxtLink>
+          <NuxtLink to="/register" class="site-header__register">注册</NuxtLink>
+        </div>
       </nav>
     </div>
   </header>
@@ -258,7 +315,18 @@ onBeforeUnmount(() => {
   font-weight: 600;
 }
 
-.site-header__login {
+.site-header__auth-links,
+.site-header__account {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+}
+
+.site-header__login,
+.site-header__register,
+.site-header__account-link,
+.site-header__logout {
   margin-left: 8px;
   padding: 7px 18px;
   font-size: 13px;
@@ -270,8 +338,50 @@ onBeforeUnmount(() => {
   transition: background 0.15s;
 }
 
-.site-header__login:hover {
+.site-header__register {
+  margin-left: 0;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.site-header__account-link,
+.site-header__logout {
+  margin-left: 0;
+  padding: 6px 10px;
+}
+
+.site-header__logout {
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.site-header__login:hover,
+.site-header__account-link:hover,
+.site-header__logout:hover {
   background: #e8eef8;
+}
+
+.site-header__register:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.site-header__account-name {
+  max-width: 96px;
+  overflow: hidden;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.site-header__role {
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .site-header__group {

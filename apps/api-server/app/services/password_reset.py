@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.security import hash_password
 from app.db.models import AuditLog, PasswordResetToken, User
+from app.services.password_policy import PASSWORD_UNCHANGED_MESSAGE, ensure_password_not_current, validate_password_policy
 
 
 PASSWORD_RESET_SAFE_MESSAGE = "If the account can receive password reset email, instructions will be sent."
@@ -302,6 +303,15 @@ def confirm_password_reset(db: Session, *, token: str, new_password: str) -> dic
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid password reset token")
 
     assert user is not None
+    try:
+        validate_password_policy(new_password)
+        ensure_password_not_current(new_password, user.password_hash)
+    except HTTPException as error:
+        reason = "same_current_password" if error.detail == PASSWORD_UNCHANGED_MESSAGE else "password_policy"
+        write_auth_audit(db, action="password_reset_confirm_failed", user_id=user.id, object_id=str(item.id), detail={"reason": reason})
+        db.commit()
+        raise
+
     user.password_hash = hash_password(new_password)
     item.consumed_at = now_utc()
     db.execute(

@@ -52,6 +52,7 @@
 - P2-B 已新增生产域名部署配置模板：`deploy/docker/docker-compose.prod.yml`、`deploy/docker/.env.production.example`、`deploy/nginx/portal-prod.conf.example` 和 `docs/DEPLOYMENT_PORTAL_ECS.md`。本阶段只固化 Portal 部署模板，不执行服务器部署、不修改业务逻辑、不处理 Achievement 部署。
 - P2-B2 已新增部署镜像源兼容：生产 Dockerfile 基础镜像可通过 build args 配置，`docker-compose.prod.yml` 可从服务器本地 `.env.production` 传入 ECR Public Docker Official Images 路径。本阶段不修改业务逻辑，服务器仍需 pull 后重新运行 compose。
 - P2-B3 已修正 admin 容器 runtime Nginx SSL 边界：admin 容器内部只提供 HTTP 静态站点，HTTPS 终止继续由宿主机 Nginx 负责。本阶段不修改业务逻辑。
+- P3-A 已新增账号体验与密码策略本地开发：注册、邮件密码重置确认、管理员创建用户统一使用 8–20 位且 4 类中至少 3 类的密码策略；密码重置确认拒绝当前相同密码；前台注册成功后返回首页并显示“注册已提交，等待审核，注意查收邮件”；Header 展示登录态；`/profile` 提供最小只读个人中心。P3-A 不发送真实邮件、不修改 SMS、不修改服务器部署、不进入 V2。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
 
@@ -156,6 +157,23 @@ P2-B3 records a deployment-only correction for the admin container runtime. It d
 | Host Nginx boundary | PRESERVED | `deploy/nginx/portal-prod.conf.example` keeps TLS termination on the ECS host and proxies `portal-admin.huairou.tech` to `127.0.0.1:15174`. |
 
 P2-B3 still does not mean production release readiness. The server must pull the updated branch, rebuild the admin service, and verify the local admin upstream before switching public Nginx routing.
+
+## 5f. P3-A Account UX and Password Policy
+
+P3-A is a local-only account experience and password policy stage. It does not deploy to ECS, does not push, does not send real email, does not change SMS, and does not modify deployment templates.
+
+| Check | Status | Notes |
+|---|---|---|
+| Password policy helper | ADDED | `apps/api-server/app/services/password_policy.py` defines the shared 8–20 / 3-of-4 rule. |
+| Registration policy | UPDATED | `POST /api/v1/auth/register` rejects weak passwords. |
+| Password reset confirm policy | UPDATED | `POST /api/v1/auth/password-reset/confirm` rejects weak passwords and current-password reuse. |
+| Admin user creation policy | UPDATED | `POST /api/v1/admin/users` rejects weak initial passwords. |
+| Account profile payload | UPDATED | `/auth/me` includes role code/name for Header and `/profile`. |
+| Frontend account UX | UPDATED | Registration redirects home with the pending-review notice; Header shows login state; `/profile` is read-only. |
+| Admin password hint | UPDATED | Admin user creation displays the same password rule hint. |
+| Backend smoke | ADDED | `scripts/smoke_password_policy_backend.sh` covers weak/strong password and current-password reuse paths. |
+
+P3-A still does not mean production release readiness. Real registration email, broader account settings, password history, session-expiry UX, performance testing, external security scanning, formal migrations, Kubernetes validation, and V2 business systems remain separate later tracks.
 
 ## 6. P0-3 First Validation Run
 
