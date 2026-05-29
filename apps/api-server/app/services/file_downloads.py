@@ -139,7 +139,7 @@ def serialize_file_record(file_record: FileRecord) -> dict:
         "owner_id": file_record.owner_id,
         "scan_status": get_file_scan_status(file_record),
         "scan_engine": file_record.scan_engine,
-        "scan_message": (file_record.scan_message or "")[:500] or None,
+        "scan_message": (file_record.scan_message or "")[:1200] or None,
         "scanned_at": file_record.scanned_at,
         "download_allowed": is_file_download_allowed(file_record),
         "created_at": file_record.created_at,

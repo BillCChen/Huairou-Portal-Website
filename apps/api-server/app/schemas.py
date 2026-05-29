@@ -208,6 +208,28 @@ class DownloadResourceIn(BaseModel):
     sort_order: int = 0
 
 
+class FileScanIn(BaseModel):
+    provider: str | None = Field(default=None, max_length=30)
+
+    @field_validator("provider", mode="before")
+    @classmethod
+    def normalize_provider(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.strip().lower() or None
+        return value
+
+
+class FileScanOverrideIn(BaseModel):
+    reason: str = Field(min_length=20, max_length=1000)
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def normalize_reason(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+
 class LeaderIn(BaseModel):
     name: str
     title: str

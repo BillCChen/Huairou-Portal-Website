@@ -35,7 +35,7 @@ def ensure_sqlite_schema_compatibility():
         {
             "scan_status": "VARCHAR(30) DEFAULT 'pending'",
             "scan_engine": "VARCHAR(100)",
-            "scan_message": "VARCHAR(500)",
+            "scan_message": "VARCHAR(1200)",
             "scanned_at": "DATETIME",
         },
     )

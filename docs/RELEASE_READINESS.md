@@ -59,6 +59,7 @@
 - P3-D 已新增 IP 访问日志与账号可溯源审计本地开发：关键账号、安全和后台管理事件记录 IP、User-Agent、path、method 和结果；后台审计页提供最小 IP/账号/action 筛选；新增 `scripts/smoke_audit_ip_backend.sh` 使用 `203.0.113.10` 验证可溯源链路。本阶段不做 PV/UV、GeoIP、IP 封禁、监控 dashboard，不修改 SMS/SSO，不发送邮件，不部署服务器。
 - P3-E1 已新增文件下载门禁与审计本地开发：public 文件允许匿名通过后端下载 endpoint 下载并审计；protected 文件要求 active 登录用户；下载成功、拒绝、未找到和路径异常均记录 IP/User-Agent；新增 `scripts/smoke_file_download_security_backend.sh` 使用 `203.0.113.20` 验证门禁和审计。本阶段不做病毒扫描、`scan_status`、对象存储、文件内容加密、服务器部署或 push。
 - P3-E2 已新增文件扫描状态机与 fail-closed 下载策略本地开发：`FileRecord` 记录 `scan_status`，新上传和历史空状态默认 `pending`；public/protected 下载都要求 `clean`；`pending`、`infected`、`failed`、`skipped` 均拒绝并审计；新增 mock scanner 和 `scripts/smoke_file_scan_status_backend.sh` 使用 `203.0.113.30` 验证状态门禁。本阶段不接真实 ClamAV，不做扫描 worker、对象存储、文件内容加密、服务器部署或 push。
+- P3-E3 已新增本地 ClamAV `clamd` worker 试验：`file_scanning.py` 增加 TCP `clamd` provider；`scripts/run_file_scan_worker.py` 提供一次性 pending 文件扫描；admin 文件库支持重新扫描和 `super_admin` 手动放行；`scripts/smoke_file_clamav_worker_backend.sh` 使用 EICAR 验证 clean / infected / failed / manual_override。本阶段不部署服务器、不 push、不做常驻 worker 或队列。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
 
@@ -287,6 +288,24 @@ P3-E2 is a local-only scan-status state machine and fail-closed download gate. I
 | Backend smoke | ADDED | `scripts/smoke_file_scan_status_backend.sh` uses test IP `203.0.113.30` and verifies pending, clean, infected, failed, and empty-state gates. |
 
 P3-E2 still does not mean production release readiness. Real antivirus engine design, scanner worker/queue, virus database updates, formal migrations, server deployment, monitoring, external security scanning, performance testing, Kubernetes validation, and V2 business systems remain separate later tracks.
+
+## 5n. P3-E3 ClamAV Worker
+
+P3-E3 is a local-only ClamAV worker experiment. It does not deploy to ECS, does not push, does not start a production scanner service, and does not change SMS/SSO/email/password reset behavior.
+
+| Check | Status | Notes |
+|---|---|---|
+| clamd provider | ADDED | `file_scanning.py` uses TCP `INSTREAM`; `OK` maps to `clean`, `FOUND` maps to `infected`, unavailable or protocol failure maps to `failed`. |
+| One-shot worker | ADDED | `scripts/run_file_scan_worker.py` scans selected `scan_status=pending` files once, supports `limit`, `retries`, and `retry-delay`, and writes `AuditLog`. |
+| Default worker scope | ADDED | Worker default is pending-only. `failed` files are not automatically rescanned. |
+| clamd unavailable | ADDED | Unavailable clamd produces `scan_status=failed`; downloads remain denied. |
+| Admin rescan | ADDED | Admin can trigger a single-file scan using the configured provider or explicit provider. |
+| Manual override | ADDED | `super_admin` can mark a file clean with `scan_engine=manual_override` only after a 20–1000 character reason; audit records the override. |
+| Download gate | PRESERVED | Public and protected downloads still require `scan_status=clean`; manual override is visibly distinguished by `scan_engine=manual_override`. |
+| Local ClamAV compose | ADDED | `deploy/docker/compose.clamav.local.yml` exposes clamd at `127.0.0.1:3310` for local smoke only; `CLAMAV_IMAGE` can switch between the tested Quay image and official ClamAV tags. |
+| EICAR smoke | ADDED | `scripts/smoke_file_clamav_worker_backend.sh` verifies normal clean, EICAR infected, clamd unavailable failed, admin rescan, and manual override. |
+
+P3-E3 still does not mean production release readiness. Server ClamAV deployment, freshclam monitoring, persistent worker or queue, resource limits, formal migrations, performance testing, Kubernetes validation, and V2 business systems remain separate later tracks.
 
 ## 6. P0-3 First Validation Run
 

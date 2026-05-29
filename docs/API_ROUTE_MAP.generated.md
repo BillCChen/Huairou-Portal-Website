@@ -24,6 +24,8 @@
 | GET | `/api/v1/admin/files` | `admin_list_files` |
 | POST | `/api/v1/admin/files/upload` | `admin_upload_file` |
 | POST | `/api/v1/admin/files/{file_id}/mock-scan` | `admin_mock_scan_file` |
+| POST | `/api/v1/admin/files/{file_id}/scan` | `admin_scan_file` |
+| POST | `/api/v1/admin/files/{file_id}/scan/override-clean` | `admin_override_file_scan_clean` |
 | GET | `/api/v1/admin/institutes` | `admin_list_institutes` |
 | POST | `/api/v1/admin/institutes` | `admin_create_institute` |
 | PUT | `/api/v1/admin/institutes/{institute_id}` | `admin_update_institute` |
@@ -78,4 +80,4 @@
 
 ## Summary
 
-- Total routes found: 71
+- Total routes found: 73

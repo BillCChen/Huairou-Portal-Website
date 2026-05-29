@@ -1,0 +1,11 @@
+services:
+  clamav:
+    image: ${CLAMAV_IMAGE:-quay.io/ukhomeofficedigital/clamav:latest}
+    ports:
+      - "127.0.0.1:3310:3310"
+    healthcheck:
+      test: ["CMD-SHELL", "clamdscan --version >/dev/null 2>&1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s

@@ -1,15 +1,20 @@
 <script setup lang="ts">
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { onMounted, ref } from "vue";
 
-import { api, unwrap } from "../api/client";
+import { api, getApiErrorMessage, unwrap } from "../api/client";
 import AppLayout from "../components/AppLayout.vue";
 
 const files = ref<any[]>([]);
 const downloads = ref<any[]>([]);
 const selectedFile = ref<File | null>(null);
 
-const scanStatusLabel = (status?: string) => {
+const scanStatusLabel = (rowOrStatus?: any) => {
+  const status = typeof rowOrStatus === "string" ? rowOrStatus : rowOrStatus?.scan_status;
+  const engine = typeof rowOrStatus === "string" ? undefined : rowOrStatus?.scan_engine;
+  if (status === "clean" && engine === "manual_override") {
+    return "手动放行（未扫描）";
+  }
   const labels: Record<string, string> = {
     pending: "待扫描",
     clean: "已通过",
@@ -29,6 +34,15 @@ const scanStatusType = (status?: string) => {
     skipped: "info",
   };
   return types[status || "pending"] || "warning";
+};
+
+const scanEngineLabel = (engine?: string) => {
+  const labels: Record<string, string> = {
+    mock: "模拟扫描",
+    clamd: "ClamAV",
+    manual_override: "手动放行",
+  };
+  return engine ? labels[engine] || engine : "-";
 };
 
 const load = async () => {
@@ -58,6 +72,34 @@ const mockScanFile = async (row: any) => {
   await unwrap(api.post(`/admin/files/${row.id}/mock-scan`));
   ElMessage.success("模拟扫描完成");
   await load();
+};
+
+const scanFile = async (row: any) => {
+  await unwrap(api.post(`/admin/files/${row.id}/scan`, { provider: "clamd" }));
+  ElMessage.success("扫描完成");
+  await load();
+};
+
+const overrideFile = async (row: any) => {
+  try {
+    const result = await ElMessageBox.prompt("请输入手动放行原因，不少于 20 字。该文件会标记为手动放行（未扫描）。", "手动放行", {
+      confirmButtonText: "确认放行",
+      cancelButtonText: "取消",
+      inputType: "textarea",
+      inputValidator: (value) => {
+        const length = String(value || "").trim().length;
+        if (length < 20) return "原因不少于 20 字";
+        if (length > 1000) return "原因不能超过 1000 字";
+        return true;
+      },
+    });
+    await unwrap(api.post(`/admin/files/${row.id}/scan/override-clean`, { reason: String(result.value || "").trim() }));
+    ElMessage.success("手动放行已记录");
+    await load();
+  } catch (error) {
+    if (error === "cancel") return;
+    ElMessage.error(getApiErrorMessage(error, "手动放行失败"));
+  }
 };
 
 const downloadResource = async (row: any) => {
@@ -102,15 +144,22 @@ onMounted(load);
       <el-table-column label="扫描状态" width="120">
         <template #default="{ row }">
           <el-tag :type="scanStatusType(row.scan_status)">
-            {{ scanStatusLabel(row.scan_status) }}
+            {{ scanStatusLabel(row) }}
           </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="扫描引擎" width="120">
+        <template #default="{ row }">
+          {{ scanEngineLabel(row.scan_engine) }}
         </template>
       </el-table-column>
       <el-table-column prop="scanned_at" label="扫描时间" min-width="180" />
       <el-table-column prop="scan_message" label="扫描说明" min-width="220" show-overflow-tooltip />
-      <el-table-column label="操作" width="130">
+      <el-table-column label="操作" width="260">
         <template #default="{ row }">
+          <el-button size="small" @click="scanFile(row)">重新扫描</el-button>
           <el-button size="small" @click="mockScanFile(row)">模拟扫描</el-button>
+          <el-button size="small" type="warning" plain @click="overrideFile(row)">手动放行</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -124,8 +173,13 @@ onMounted(load);
       <el-table-column label="扫描状态" width="120">
         <template #default="{ row }">
           <el-tag :type="scanStatusType(row.file?.scan_status)">
-            {{ scanStatusLabel(row.file?.scan_status) }}
+            {{ scanStatusLabel(row.file) }}
           </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="扫描引擎" width="120">
+        <template #default="{ row }">
+          {{ scanEngineLabel(row.file?.scan_engine) }}
         </template>
       </el-table-column>
       <el-table-column label="访问范围" width="120">

@@ -18,6 +18,13 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3100,http://127.0.0.1:3100,http://localhost:5174,http://127.0.0.1:5174"
     storage_root: str = str(DATA_DIR / "files")
     upload_dir: str = "uploads"
+    file_scan_provider: str = "mock"
+    clamav_host: str = "127.0.0.1"
+    clamav_port: int = Field(default=3310, ge=1, le=65535)
+    clamav_timeout_seconds: float = Field(default=30.0, ge=1.0, le=300.0)
+    file_scan_worker_limit: int = Field(default=20, ge=1, le=1000)
+    file_scan_worker_retries: int = Field(default=2, ge=0, le=10)
+    file_scan_worker_retry_delay_seconds: float = Field(default=5.0, ge=0.0, le=300.0)
     export_dir: str = "exports"
     report_dir: str = "reports"
     backup_dir: str = "backup"

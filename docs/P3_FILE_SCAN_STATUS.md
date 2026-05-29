@@ -27,6 +27,8 @@ P3-E2 只覆盖 Portal 文件扫描状态机和 fail-closed 下载策略。
 
 真实扫描引擎、worker、队列和病毒库运维设计留到 P3-E3。
 
+P3-E3 已在本地试验中补充 `clamd` TCP provider、一次性 worker、管理员重扫和 `super_admin` 手动放行。该补充仍不代表服务器生产部署。
+
 ## 2. scan_status
 
 `scan_status` 取值：
@@ -65,14 +67,19 @@ mock 规则：
 
 mock scanner 不调用外部进程，不接 ClamAV，不读取超过 1 MB 的文件样本，不输出文件内容。
 
+P3-E3 在此基础上新增 `clamd` provider。`clamd` 扫描使用 TCP `INSTREAM`，普通文件映射为 `clean`，EICAR 命中映射为 `infected`，连接不可用、超时或协议异常映射为 `failed`。
+
 ## 5. Admin UI
 
 后台文件库展示：
 
 - 扫描状态。
+- 扫描引擎。
 - 扫描时间。
 - 扫描说明。
 - 单文件“模拟扫描”操作。
+- P3-E3 起支持单文件重新扫描。
+- P3-E3 起支持 `super_admin` 手动放行，并以“手动放行（未扫描）”区别于普通扫描通过。
 
 后台不会展示 `storage_path`，不会暴露上传目录结构，也不提供复杂扫描队列 UI。
 
@@ -101,6 +108,15 @@ mock scanner 不调用外部进程，不接 ClamAV，不读取超过 1 MB 的文
 
 - `module=files`
 - `action=file_mock_scan`
+
+P3-E3 新增：
+
+- `action=file_scan`
+- `action=file_scan_worker`
+- `action=file_scan_manual_override`
+- `detail_json.scan_engine`
+
+`manual_override` 必须保留审计原因，并明确该 `clean` 状态未经过 ClamAV 扫描。
 
 审计不记录文件内容、password、password hash、access token、raw reset token、完整 reset link、SMTP secret 或服务器真实存储根路径。
 
@@ -131,13 +147,21 @@ PORTAL_BACKEND_PYTHON=python3.11 ./scripts/smoke_file_scan_status_backend.sh
 
 ## 8. Remaining Work
 
-P3-E3:
+P3-E3 已继续处理：
 
-- 真实扫描引擎设计。
-- ClamAV 或替代 scanner 选型。
-- 扫描 worker、队列、超时、失败重试。
-- 病毒库更新策略。
-- 资源占用和 fail-closed 运维策略。
+- 本地 ClamAV `clamd` TCP provider。
+- 一次性 scanner worker。
+- worker retry。
+- clamd unavailable -> `failed`。
+- admin rescan。
+- `super_admin` manual override。
+
+P3-E3 仍未处理：
+
+- 服务器部署。
+- 常驻 worker 或队列。
+- 病毒库运维监控。
+- 资源占用和生产 fail-closed 运维策略。
 
 后续独立阶段：
 

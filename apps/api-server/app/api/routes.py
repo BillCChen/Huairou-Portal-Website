@@ -41,6 +41,8 @@ from app.schemas import (
     CaseIn,
     CategoryIn,
     DownloadResourceIn,
+    FileScanIn,
+    FileScanOverrideIn,
     InstituteIn,
     LoginRequest,
     LeaderIn,
@@ -79,7 +81,19 @@ from app.services.file_downloads import (
     serialize_download_resource,
     serialize_file_record,
 )
-from app.services.file_scanning import mark_file_scan_result, scan_file_mock
+from app.services.file_scanning import (
+    SCAN_ENGINE_CLAMD,
+    SCAN_ENGINE_MANUAL_OVERRIDE,
+    SCAN_ENGINE_MOCK,
+    SCAN_STATUS_CLEAN,
+    SCAN_STATUS_FAILED,
+    SCAN_STATUS_INFECTED,
+    ScanResult,
+    build_manual_override_result,
+    mark_file_scan_result,
+    scan_file_mock,
+    scan_file_with_provider,
+)
 from app.services.password_reset import confirm_password_reset, create_password_reset_request
 from app.services.password_policy import validate_password_policy
 from app.services.request_context import RequestMeta, current_request_meta, extract_request_meta, get_client_ip, get_user_agent
@@ -1165,6 +1179,66 @@ def admin_update_institute(institute_id: int, payload: InstituteIn, current_user
     return APIResponse(data=encode(institute))
 
 
+def selected_scan_provider(payload: FileScanIn | None = None) -> str:
+    provider = (payload.provider if payload else None) or settings.file_scan_provider
+    normalized = provider.strip().lower()
+    if normalized not in {SCAN_ENGINE_MOCK, SCAN_ENGINE_CLAMD}:
+        raise HTTPException(status_code=422, detail="Unsupported scan provider")
+    return normalized
+
+
+def scan_file_record_for_admin(db: Session, record: FileRecord, provider: str) -> ScanResult:
+    try:
+        scan_path = resolve_stored_path(record)
+    except HTTPException:
+        return ScanResult(
+            status=SCAN_STATUS_FAILED,
+            engine=provider[:100],
+            message="Stored file path is not allowed",
+            scanned_at=datetime.now(UTC),
+        )
+    return scan_file_with_provider(
+        record,
+        scan_path,
+        provider=provider,
+        clamav_host=settings.clamav_host,
+        clamav_port=settings.clamav_port,
+        clamav_timeout_seconds=settings.clamav_timeout_seconds,
+    )
+
+
+def audit_file_scan(
+    db: Session,
+    *,
+    current_user: User,
+    record: FileRecord,
+    action: str,
+    result: ScanResult,
+    detail: dict | None = None,
+) -> None:
+    payload = {
+        "file_id": record.id,
+        "scan_status": result.status,
+        "scan_engine": result.engine,
+        "scan_message": result.message,
+        "result": result.status,
+    }
+    if detail:
+        payload.update(detail)
+    scan_completed = result.status in {SCAN_STATUS_CLEAN, SCAN_STATUS_INFECTED}
+    write_audit_log(
+        db,
+        current_user.id,
+        "files",
+        action,
+        "file",
+        str(record.id),
+        payload,
+        result="success" if scan_completed else "failure",
+        failure_reason=None if scan_completed else result.status,
+    )
+
+
 @router.get(f"{settings.api_prefix}/admin/files", response_model=APIResponse)
 def admin_list_files(_: User = Depends(require_admin), db: Session = Depends(get_db)):
     files = db.scalars(select(FileRecord).order_by(FileRecord.created_at.desc())).all()
@@ -1245,6 +1319,54 @@ def admin_mock_scan_file(
         },
         result="success" if result.status == "clean" else "failure",
         failure_reason=None if result.status == "clean" else result.status,
+    )
+    db.commit()
+    db.refresh(record)
+    return APIResponse(data=encode(serialize_file_record(record)))
+
+
+@router.post(f"{settings.api_prefix}/admin/files/{{file_id}}/scan", response_model=APIResponse)
+def admin_scan_file(
+    file_id: int,
+    payload: FileScanIn | None = None,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    record = db.get(FileRecord, file_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="File not found")
+    provider = selected_scan_provider(payload)
+    result = scan_file_record_for_admin(db, record, provider)
+    mark_file_scan_result(db, record, result)
+    audit_file_scan(db, current_user=current_user, record=record, action="file_scan", result=result)
+    db.commit()
+    db.refresh(record)
+    return APIResponse(data=encode(serialize_file_record(record)))
+
+
+@router.post(f"{settings.api_prefix}/admin/files/{{file_id}}/scan/override-clean", response_model=APIResponse)
+def admin_override_file_scan_clean(
+    file_id: int,
+    payload: FileScanOverrideIn,
+    current_user: User = Depends(require_super_admin),
+    db: Session = Depends(get_db),
+):
+    record = db.get(FileRecord, file_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="File not found")
+    result = build_manual_override_result(payload.reason)
+    mark_file_scan_result(db, record, result)
+    audit_file_scan(
+        db,
+        current_user=current_user,
+        record=record,
+        action="file_scan_manual_override",
+        result=result,
+        detail={
+            "reason": payload.reason,
+            "scan_engine": SCAN_ENGINE_MANUAL_OVERRIDE,
+            "clamav_scanned": False,
+        },
     )
     db.commit()
     db.refresh(record)
