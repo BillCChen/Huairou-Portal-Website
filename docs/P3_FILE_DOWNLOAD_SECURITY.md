@@ -12,7 +12,7 @@ P3-E1 只覆盖 Portal 文件下载门禁和审计：
 P3-E1 不覆盖：
 
 - 病毒扫描。
-- `scan_status` 状态机。
+- `scan_status` 状态机，已由 P3-E2 独立处理。
 - ClamAV 或其他扫描服务。
 - 文件内容加密。
 - 对象存储 S3 / OSS。
@@ -37,6 +37,8 @@ protected:
 - 成功下载记录用户账号、IP、User-Agent、路径、方法和结果。
 
 P3-E1 不做细粒度角色权限。protected 文件只要求当前用户是 active 登录用户。
+
+P3-E2 在此基础上增加 fail-closed 扫描状态门禁：public 和 protected 文件都必须 `scan_status=clean` 才允许下载。
 
 ## 3. Download Endpoints
 
@@ -88,6 +90,8 @@ P3-E1 不做细粒度角色权限。protected 文件只要求当前用户是 act
 
 P3-E1 不做文件内容加密，不做数据库透明加密，也不改变现有上传存储结构。下载路径由数据库中的 `FileRecord.storage_path` 派生，并在服务端解析后校验必须位于 `settings.storage_root` 内。
 
+P3-E2 只新增扫描状态门禁和 mock scanner，不改变存储结构，不接真实扫描引擎。
+
 ## 6. Retention
 
 文件下载审计建议与 P3-D 一致，保留 180 天。
@@ -121,11 +125,18 @@ PORTAL_BACKEND_PYTHON=python3.11 ./scripts/smoke_file_download_security_backend.
 
 ## 8. Remaining Work
 
-P3-E2 可继续处理：
+P3-E2 已继续处理：
 
-- `scan_status`。
-- 病毒扫描。
-- 扫描失败时 fail-closed download。
+- `scan_status` 状态机。
+- public / protected 下载必须 `clean`。
+- mock scanner 状态流转验证。
+- 非 `clean` 下载拒绝审计。
+
+P3-E3 继续处理：
+
+- 真实扫描引擎设计。
+- ClamAV / worker / queue / virus database update / resource usage。
+- 生产环境 scanner fail-closed 运维策略。
 
 后续独立阶段可处理：
 

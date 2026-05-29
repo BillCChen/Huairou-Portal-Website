@@ -98,6 +98,10 @@ class FileRecord(TimestampMixin, Base):
     mime_type: Mapped[str] = mapped_column(String(100))
     size: Mapped[int] = mapped_column(Integer)
     owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    scan_status: Mapped[str | None] = mapped_column(String(30), default="pending", server_default="pending", index=True)
+    scan_engine: Mapped[str | None] = mapped_column(String(100))
+    scan_message: Mapped[str | None] = mapped_column(String(500))
+    scanned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Article(TimestampMixin, Base):

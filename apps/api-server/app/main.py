@@ -31,6 +31,15 @@ def ensure_sqlite_columns(table_name: str, columns: dict[str, str]) -> None:
 def ensure_sqlite_schema_compatibility():
     ensure_sqlite_columns("banners", {"tag": "VARCHAR(50)"})
     ensure_sqlite_columns(
+        "files",
+        {
+            "scan_status": "VARCHAR(30) DEFAULT 'pending'",
+            "scan_engine": "VARCHAR(100)",
+            "scan_message": "VARCHAR(500)",
+            "scanned_at": "DATETIME",
+        },
+    )
+    ensure_sqlite_columns(
         "audit_logs",
         {
             "ip_address": "VARCHAR(50)",

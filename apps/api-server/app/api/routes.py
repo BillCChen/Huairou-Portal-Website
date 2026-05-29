@@ -72,11 +72,14 @@ from app.services.file_downloads import (
     DOWNLOAD_ACTION_SUCCESS,
     audit_file_download,
     build_download_response,
+    enforce_clean_scan_status,
     resolve_active_user_from_request,
     resolve_file_path,
+    resolve_stored_path,
     serialize_download_resource,
     serialize_file_record,
 )
+from app.services.file_scanning import mark_file_scan_result, scan_file_mock
 from app.services.password_reset import confirm_password_reset, create_password_reset_request
 from app.services.password_policy import validate_password_policy
 from app.services.request_context import RequestMeta, current_request_meta, extract_request_meta, get_client_ip, get_user_agent
@@ -599,6 +602,21 @@ def download_public_resource(resource_id: int, request: Request, db: Session = D
         db.commit()
         raise HTTPException(status_code=404, detail="File not found")
     try:
+        enforce_clean_scan_status(file_record)
+    except HTTPException:
+        audit_file_download(
+            db,
+            request=request,
+            action=DOWNLOAD_ACTION_DENIED,
+            result="failure",
+            resource_id=resource.id,
+            file_record=file_record,
+            reason="scan_status_not_clean",
+            is_public=resource.is_public,
+        )
+        db.commit()
+        raise
+    try:
         resolved_path = resolve_file_path(file_record)
     except HTTPException as exc:
         audit_file_download(
@@ -670,6 +688,23 @@ def download_protected_resource(resource_id: int, request: Request, db: Session 
         )
         db.commit()
         raise HTTPException(status_code=404, detail="File not found")
+    try:
+        enforce_clean_scan_status(file_record)
+    except HTTPException:
+        audit_file_download(
+            db,
+            request=request,
+            action=DOWNLOAD_ACTION_DENIED,
+            result="failure",
+            resource_id=resource.id,
+            file_record=file_record,
+            user=current_user,
+            actor_type="user",
+            reason="scan_status_not_clean",
+            is_public=resource.is_public,
+        )
+        db.commit()
+        raise
     try:
         resolved_path = resolve_file_path(file_record)
     except HTTPException as exc:
@@ -1159,10 +1194,58 @@ async def admin_upload_file(
         mime_type=upload.content_type or "application/octet-stream",
         size=len(contents),
         owner_id=current_user.id,
+        scan_status="pending",
     )
     db.add(record)
     db.flush()
     write_audit_log(db, current_user.id, "files", "create", "file", str(record.id))
+    db.commit()
+    db.refresh(record)
+    return APIResponse(data=encode(serialize_file_record(record)))
+
+
+@router.post(f"{settings.api_prefix}/admin/files/{{file_id}}/mock-scan", response_model=APIResponse)
+def admin_mock_scan_file(
+    file_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    record = db.get(FileRecord, file_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="File not found")
+    try:
+        scan_path = resolve_stored_path(record)
+    except HTTPException as exc:
+        write_audit_log(
+            db,
+            current_user.id,
+            "files",
+            "file_mock_scan",
+            "file",
+            str(file_id),
+            {"result": "failure", "reason": "path_invalid"},
+            result="failure",
+            failure_reason="path_invalid",
+        )
+        db.commit()
+        raise
+    result = scan_file_mock(record, scan_path)
+    mark_file_scan_result(db, record, result)
+    write_audit_log(
+        db,
+        current_user.id,
+        "files",
+        "file_mock_scan",
+        "file",
+        str(file_id),
+        {
+            "scan_status": result.status,
+            "scan_engine": result.engine,
+            "result": result.status,
+        },
+        result="success" if result.status == "clean" else "failure",
+        failure_reason=None if result.status == "clean" else result.status,
+    )
     db.commit()
     db.refresh(record)
     return APIResponse(data=encode(serialize_file_record(record)))

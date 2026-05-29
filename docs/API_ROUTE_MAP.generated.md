@@ -23,6 +23,7 @@
 | PUT | `/api/v1/admin/downloads/{resource_id}` | `admin_update_download` |
 | GET | `/api/v1/admin/files` | `admin_list_files` |
 | POST | `/api/v1/admin/files/upload` | `admin_upload_file` |
+| POST | `/api/v1/admin/files/{file_id}/mock-scan` | `admin_mock_scan_file` |
 | GET | `/api/v1/admin/institutes` | `admin_list_institutes` |
 | POST | `/api/v1/admin/institutes` | `admin_create_institute` |
 | PUT | `/api/v1/admin/institutes/{institute_id}` | `admin_update_institute` |
@@ -57,10 +58,12 @@
 | POST | `/api/v1/auth/register` | `register_user` |
 | POST | `/api/v1/auth/reset-password` | `reset_password` |
 | POST | `/api/v1/auth/sms-send` | `send_sms_code` |
+| GET | `/api/v1/downloads/{resource_id}/download` | `download_protected_resource` |
 | GET | `/api/v1/public/cases` | `list_cases` |
 | GET | `/api/v1/public/cases/{slug}` | `get_case_detail` |
 | GET | `/api/v1/public/categories` | `list_public_categories` |
 | GET | `/api/v1/public/downloads` | `list_public_downloads` |
+| GET | `/api/v1/public/downloads/{resource_id}/download` | `download_public_resource` |
 | GET | `/api/v1/public/home` | `get_home` |
 | POST | `/api/v1/public/inquiries` | `create_inquiry` |
 | GET | `/api/v1/public/institutes` | `list_institutes` |
@@ -75,4 +78,4 @@
 
 ## Summary
 
-- Total routes found: 68
+- Total routes found: 71

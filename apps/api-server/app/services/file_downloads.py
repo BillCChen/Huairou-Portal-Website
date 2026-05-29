@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.security import ALGORITHM
 from app.db.models import AuditLog, DownloadResource, FileRecord, User
+from app.services.file_scanning import get_file_scan_status, is_file_download_allowed
 from app.services.request_context import extract_request_meta
 
 
@@ -28,7 +29,7 @@ def safe_download_filename(origin_name: str | None) -> str:
     return name[:180] or "download"
 
 
-def resolve_file_path(file_record: FileRecord) -> Path:
+def resolve_stored_path(file_record: FileRecord) -> Path:
     storage_root = Path(settings.storage_root).resolve()
     raw_path = Path(file_record.storage_path)
     candidate = raw_path if raw_path.is_absolute() else storage_root / raw_path
@@ -37,6 +38,11 @@ def resolve_file_path(file_record: FileRecord) -> Path:
         resolved.relative_to(storage_root)
     except ValueError:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="File path is not allowed") from None
+    return resolved
+
+
+def resolve_file_path(file_record: FileRecord) -> Path:
+    resolved = resolve_stored_path(file_record)
     if not resolved.is_file():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
     return resolved
@@ -63,14 +69,17 @@ def audit_file_download(
     actor_type: str = "anonymous",
     reason: str | None = None,
     is_public: bool | None = None,
+    scan_status: str | None = None,
 ) -> None:
     meta = extract_request_meta(request)
+    normalized_scan_status = scan_status or get_file_scan_status(file_record)
     detail = {
         "actor_type": actor_type,
         "resource_id": resource_id,
         "file_id": file_record.id if file_record else None,
         "origin_name": file_record.origin_name if file_record else None,
         "is_public": is_public,
+        "scan_status": normalized_scan_status,
         "username": user.username if user else None,
         "result": result,
         "reason": reason,
@@ -114,6 +123,13 @@ def resolve_active_user_from_request(db: Session, request: Request) -> tuple[Use
     return user, None
 
 
+def enforce_clean_scan_status(file_record: FileRecord) -> str:
+    scan_status = get_file_scan_status(file_record) or "pending"
+    if not is_file_download_allowed(file_record):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="File has not passed security scan")
+    return scan_status
+
+
 def serialize_file_record(file_record: FileRecord) -> dict:
     return {
         "id": file_record.id,
@@ -121,6 +137,11 @@ def serialize_file_record(file_record: FileRecord) -> dict:
         "mime_type": file_record.mime_type,
         "size": file_record.size,
         "owner_id": file_record.owner_id,
+        "scan_status": get_file_scan_status(file_record),
+        "scan_engine": file_record.scan_engine,
+        "scan_message": (file_record.scan_message or "")[:500] or None,
+        "scanned_at": file_record.scanned_at,
+        "download_allowed": is_file_download_allowed(file_record),
         "created_at": file_record.created_at,
         "updated_at": file_record.updated_at,
     }

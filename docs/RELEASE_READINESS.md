@@ -58,6 +58,7 @@
 - P3-C 已新增会话过期与登录态回收本地开发：`ACCESS_TOKEN_EXPIRE_MINUTES` 默认 180 分钟，后端 JWT `exp` 过期返回 401；Portal 前台和 Admin Console 遇到认证 401 会清理本地登录态并跳转登录页；新增 1 分钟过期 smoke。本阶段不引入 refresh token、token blacklist 或多端互踢，不修改 SMS/SSO，不发送邮件，不部署服务器。
 - P3-D 已新增 IP 访问日志与账号可溯源审计本地开发：关键账号、安全和后台管理事件记录 IP、User-Agent、path、method 和结果；后台审计页提供最小 IP/账号/action 筛选；新增 `scripts/smoke_audit_ip_backend.sh` 使用 `203.0.113.10` 验证可溯源链路。本阶段不做 PV/UV、GeoIP、IP 封禁、监控 dashboard，不修改 SMS/SSO，不发送邮件，不部署服务器。
 - P3-E1 已新增文件下载门禁与审计本地开发：public 文件允许匿名通过后端下载 endpoint 下载并审计；protected 文件要求 active 登录用户；下载成功、拒绝、未找到和路径异常均记录 IP/User-Agent；新增 `scripts/smoke_file_download_security_backend.sh` 使用 `203.0.113.20` 验证门禁和审计。本阶段不做病毒扫描、`scan_status`、对象存储、文件内容加密、服务器部署或 push。
+- P3-E2 已新增文件扫描状态机与 fail-closed 下载策略本地开发：`FileRecord` 记录 `scan_status`，新上传和历史空状态默认 `pending`；public/protected 下载都要求 `clean`；`pending`、`infected`、`failed`、`skipped` 均拒绝并审计；新增 mock scanner 和 `scripts/smoke_file_scan_status_backend.sh` 使用 `203.0.113.30` 验证状态门禁。本阶段不接真实 ClamAV，不做扫描 worker、对象存储、文件内容加密、服务器部署或 push。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
 
@@ -269,7 +270,23 @@ P3-E1 is a local-only file download access-control and audit stage. It does not 
 | Backend smoke | ADDED | `scripts/smoke_file_download_security_backend.sh` uses test IP `203.0.113.20` and verifies public/protected download behavior, not-found/path-invalid auditing, and metadata redaction. |
 | Retention | DOCUMENTED | `docs/P3_FILE_DOWNLOAD_SECURITY.md` aligns file download audit retention with the P3-D 180-day recommendation; automatic cleanup is deferred. |
 
-P3-E1 still does not mean production release readiness. Virus scanning, scan state fail-closed behavior, object storage, encrypted-at-rest strategy, formal migrations, server deployment, monitoring, external security scanning, performance testing, Kubernetes validation, and V2 business systems remain separate later tracks.
+P3-E1 still does not mean production release readiness. Virus scanning engine integration, object storage, encrypted-at-rest strategy, formal migrations, server deployment, monitoring, external security scanning, performance testing, Kubernetes validation, and V2 business systems remain separate later tracks.
+
+## 5m. P3-E2 File Scan Status
+
+P3-E2 is a local-only scan-status state machine and fail-closed download gate. It does not deploy to ECS, does not push, does not change SMS/SSO, does not send email, and does not integrate ClamAV or any real scanner.
+
+| Check | Status | Notes |
+|---|---|---|
+| File metadata | ADDED | `FileRecord` carries `scan_status`, `scan_engine`, `scan_message`, and `scanned_at`; new uploads default to `pending`. |
+| Historical default | ADDED | Empty or unknown scan status is normalized to `pending`, so historical files are not implicitly trusted. |
+| Download gate | ADDED | Public and protected download endpoints require `scan_status=clean`; `pending`, `infected`, `failed`, and `skipped` are rejected. |
+| Download audit | UPDATED | Scan-state download denials use `file_download_denied` with `reason=scan_status_not_clean` and include `scan_status`, IP, User-Agent, path, and method. |
+| Mock scanner | ADDED | `file_scanning.py` provides local-only mock scanning for clean, infected, and failed status transitions. |
+| Admin UI | UPDATED | The file library displays scan status and allows a single-file mock scan action. |
+| Backend smoke | ADDED | `scripts/smoke_file_scan_status_backend.sh` uses test IP `203.0.113.30` and verifies pending, clean, infected, failed, and empty-state gates. |
+
+P3-E2 still does not mean production release readiness. Real antivirus engine design, scanner worker/queue, virus database updates, formal migrations, server deployment, monitoring, external security scanning, performance testing, Kubernetes validation, and V2 business systems remain separate later tracks.
 
 ## 6. P0-3 First Validation Run
 

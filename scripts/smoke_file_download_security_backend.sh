@@ -246,6 +246,7 @@ with SessionLocal() as db:
         mime_type="text/plain",
         size=len(public_body),
         owner_id=None,
+        scan_status="clean",
     )
     protected_file = FileRecord(
         origin_name="protected-smoke.txt",
@@ -253,6 +254,7 @@ with SessionLocal() as db:
         mime_type="text/plain",
         size=len(protected_body),
         owner_id=None,
+        scan_status="clean",
     )
     invalid_file = FileRecord(
         origin_name="invalid-path.txt",
@@ -260,6 +262,7 @@ with SessionLocal() as db:
         mime_type="text/plain",
         size=12,
         owner_id=None,
+        scan_status="clean",
     )
     db.add_all([public_file, protected_file, invalid_file])
     db.flush()

@@ -9,6 +9,28 @@ const files = ref<any[]>([]);
 const downloads = ref<any[]>([]);
 const selectedFile = ref<File | null>(null);
 
+const scanStatusLabel = (status?: string) => {
+  const labels: Record<string, string> = {
+    pending: "待扫描",
+    clean: "已通过",
+    infected: "风险文件",
+    failed: "扫描失败",
+    skipped: "已跳过",
+  };
+  return labels[status || "pending"] || "待扫描";
+};
+
+const scanStatusType = (status?: string) => {
+  const types: Record<string, "success" | "warning" | "danger" | "info"> = {
+    pending: "warning",
+    clean: "success",
+    infected: "danger",
+    failed: "danger",
+    skipped: "info",
+  };
+  return types[status || "pending"] || "warning";
+};
+
 const load = async () => {
   const [fileData, downloadData] = await Promise.all([
     unwrap<any[]>(api.get("/admin/files")),
@@ -29,6 +51,12 @@ const upload = async () => {
   await unwrap(api.post("/admin/files/upload", formData));
   ElMessage.success("上传成功");
   selectedFile.value = null;
+  await load();
+};
+
+const mockScanFile = async (row: any) => {
+  await unwrap(api.post(`/admin/files/${row.id}/mock-scan`));
+  ElMessage.success("模拟扫描完成");
   await load();
 };
 
@@ -71,6 +99,20 @@ onMounted(load);
       <el-table-column prop="origin_name" label="文件名" min-width="240" />
       <el-table-column prop="mime_type" label="文件类型" min-width="180" />
       <el-table-column prop="size" label="大小" width="120" />
+      <el-table-column label="扫描状态" width="120">
+        <template #default="{ row }">
+          <el-tag :type="scanStatusType(row.scan_status)">
+            {{ scanStatusLabel(row.scan_status) }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="scanned_at" label="扫描时间" min-width="180" />
+      <el-table-column prop="scan_message" label="扫描说明" min-width="220" show-overflow-tooltip />
+      <el-table-column label="操作" width="130">
+        <template #default="{ row }">
+          <el-button size="small" @click="mockScanFile(row)">模拟扫描</el-button>
+        </template>
+      </el-table-column>
     </el-table>
     <div style="margin-top: 32px;">
       <div style="font-size: 22px; font-weight: 700;">下载资源</div>
@@ -79,6 +121,13 @@ onMounted(load);
     <el-table :data="downloads" style="margin-top: 16px;">
       <el-table-column prop="title" label="标题" min-width="220" />
       <el-table-column prop="file.origin_name" label="关联文件" min-width="220" />
+      <el-table-column label="扫描状态" width="120">
+        <template #default="{ row }">
+          <el-tag :type="scanStatusType(row.file?.scan_status)">
+            {{ scanStatusLabel(row.file?.scan_status) }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="访问范围" width="120">
         <template #default="{ row }">
           <el-tag :type="row.is_public ? 'success' : 'warning'">
