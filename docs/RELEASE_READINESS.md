@@ -57,6 +57,7 @@
 - P3-B3 记录 P3-A/P3-B/P3-B2 本地 readiness 收束：新增 `docs/P3_ACCOUNT_EXPERIENCE_READINESS.md`，本轮只做文档与本地非真实 SMTP 验证，不重发真实邮件、不 push、不部署服务器。下一步建议进入 P3-C 3 小时静默过期，或在用户另行授权后做 P3 merge-readiness / push / deployment。
 - P3-C 已新增会话过期与登录态回收本地开发：`ACCESS_TOKEN_EXPIRE_MINUTES` 默认 180 分钟，后端 JWT `exp` 过期返回 401；Portal 前台和 Admin Console 遇到认证 401 会清理本地登录态并跳转登录页；新增 1 分钟过期 smoke。本阶段不引入 refresh token、token blacklist 或多端互踢，不修改 SMS/SSO，不发送邮件，不部署服务器。
 - P3-D 已新增 IP 访问日志与账号可溯源审计本地开发：关键账号、安全和后台管理事件记录 IP、User-Agent、path、method 和结果；后台审计页提供最小 IP/账号/action 筛选；新增 `scripts/smoke_audit_ip_backend.sh` 使用 `203.0.113.10` 验证可溯源链路。本阶段不做 PV/UV、GeoIP、IP 封禁、监控 dashboard，不修改 SMS/SSO，不发送邮件，不部署服务器。
+- P3-E1 已新增文件下载门禁与审计本地开发：public 文件允许匿名通过后端下载 endpoint 下载并审计；protected 文件要求 active 登录用户；下载成功、拒绝、未找到和路径异常均记录 IP/User-Agent；新增 `scripts/smoke_file_download_security_backend.sh` 使用 `203.0.113.20` 验证门禁和审计。本阶段不做病毒扫描、`scan_status`、对象存储、文件内容加密、服务器部署或 push。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
 
@@ -253,6 +254,22 @@ P3-D is a local-only IP traceability and account/security audit stage. It does n
 | Retention | DOCUMENTED | `docs/P3_AUDIT_IP_TRACEABILITY.md` recommends 180-day retention; automatic cleanup is deferred. |
 
 P3-D still does not mean production release readiness. Formal migrations, server deployment, real operational retention jobs, monitoring, external security scanning, performance testing, Kubernetes validation, and V2 business systems remain separate later tracks.
+
+## 5l. P3-E1 File Download Security
+
+P3-E1 is a local-only file download access-control and audit stage. It does not deploy to ECS, does not push, does not change SMS/SSO, does not send email, and does not add virus scanning, `scan_status`, object storage, file content encryption, public uploads static serving, or PV/UV analytics.
+
+| Check | Status | Notes |
+|---|---|---|
+| Backend download endpoints | ADDED | `GET /api/v1/public/downloads/{resource_id}/download` serves public resources anonymously; `GET /api/v1/downloads/{resource_id}/download` requires an active logged-in user. |
+| Path safety | ADDED | Download paths are derived only from `FileRecord.storage_path`, resolved under `settings.storage_root`, and rejected when they escape the storage root. |
+| Metadata boundary | UPDATED | Public downloads and admin file responses do not return `storage_path`; `uploads` remains non-static. |
+| Download audit | ADDED | `AuditLog` records `file_download_success`, `file_download_denied`, `file_download_not_found`, and `file_download_path_invalid` with actor type, resource/file IDs, IP, User-Agent, path, method, result, and failure reason. |
+| Admin UI | UPDATED | The file library hides storage paths and shows download resource visibility plus a backend-endpoint download action. |
+| Backend smoke | ADDED | `scripts/smoke_file_download_security_backend.sh` uses test IP `203.0.113.20` and verifies public/protected download behavior, not-found/path-invalid auditing, and metadata redaction. |
+| Retention | DOCUMENTED | `docs/P3_FILE_DOWNLOAD_SECURITY.md` aligns file download audit retention with the P3-D 180-day recommendation; automatic cleanup is deferred. |
+
+P3-E1 still does not mean production release readiness. Virus scanning, scan state fail-closed behavior, object storage, encrypted-at-rest strategy, formal migrations, server deployment, monitoring, external security scanning, performance testing, Kubernetes validation, and V2 business systems remain separate later tracks.
 
 ## 6. P0-3 First Validation Run
 

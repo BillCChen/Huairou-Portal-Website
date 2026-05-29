@@ -65,6 +65,18 @@ from app.services.account_notifications import (
     send_registration_rejected_notification,
     send_registration_submitted_notification,
 )
+from app.services.file_downloads import (
+    DOWNLOAD_ACTION_DENIED,
+    DOWNLOAD_ACTION_NOT_FOUND,
+    DOWNLOAD_ACTION_PATH_INVALID,
+    DOWNLOAD_ACTION_SUCCESS,
+    audit_file_download,
+    build_download_response,
+    resolve_active_user_from_request,
+    resolve_file_path,
+    serialize_download_resource,
+    serialize_file_record,
+)
 from app.services.password_reset import confirm_password_reset, create_password_reset_request
 from app.services.password_policy import validate_password_policy
 from app.services.request_context import RequestMeta, current_request_meta, extract_request_meta, get_client_ip, get_user_agent
@@ -332,6 +344,11 @@ def serialize_login_log(log: LoginLog) -> dict:
     return encode(log)
 
 
+def serialize_download_resource_row(resource: DownloadResource, db: Session) -> dict:
+    file_record = db.get(FileRecord, resource.file_id)
+    return encode(serialize_download_resource(resource, file_record=file_record))
+
+
 def get_role_by_code(db: Session, role_code: str) -> Role:
     role = db.scalar(select(Role).where(Role.code == role_code))
     if not role:
@@ -536,7 +553,154 @@ def list_public_downloads(
         else:
             return APIResponse(data={"items": [], "page": page, "page_size": page_size, "total": 0})
     query = query.order_by(DownloadResource.sort_order.asc(), DownloadResource.created_at.desc())
-    return APIResponse(data=encode(paginate(query, db, page, page_size)))
+    result = paginate(query, db, page, page_size)
+    result["items"] = [serialize_download_resource_row(item, db) for item in result["items"]]
+    return APIResponse(data=result)
+
+
+@router.get(f"{settings.api_prefix}/public/downloads/{{resource_id}}/download")
+def download_public_resource(resource_id: int, request: Request, db: Session = Depends(get_db)):
+    resource = db.get(DownloadResource, resource_id)
+    if not resource:
+        audit_file_download(
+            db,
+            request=request,
+            action=DOWNLOAD_ACTION_NOT_FOUND,
+            result="failure",
+            resource_id=resource_id,
+            reason="resource_not_found",
+        )
+        db.commit()
+        raise HTTPException(status_code=404, detail="Download resource not found")
+    file_record = db.get(FileRecord, resource.file_id)
+    if not resource.is_public:
+        audit_file_download(
+            db,
+            request=request,
+            action=DOWNLOAD_ACTION_DENIED,
+            result="failure",
+            resource_id=resource.id,
+            file_record=file_record,
+            reason="protected_resource",
+            is_public=resource.is_public,
+        )
+        db.commit()
+        raise HTTPException(status_code=403, detail="Download requires login")
+    if not file_record:
+        audit_file_download(
+            db,
+            request=request,
+            action=DOWNLOAD_ACTION_NOT_FOUND,
+            result="failure",
+            resource_id=resource.id,
+            reason="file_not_found",
+            is_public=resource.is_public,
+        )
+        db.commit()
+        raise HTTPException(status_code=404, detail="File not found")
+    try:
+        resolved_path = resolve_file_path(file_record)
+    except HTTPException as exc:
+        audit_file_download(
+            db,
+            request=request,
+            action=DOWNLOAD_ACTION_PATH_INVALID if exc.status_code == 403 else DOWNLOAD_ACTION_NOT_FOUND,
+            result="failure",
+            resource_id=resource.id,
+            file_record=file_record,
+            reason="path_invalid" if exc.status_code == 403 else "file_not_found",
+            is_public=resource.is_public,
+        )
+        db.commit()
+        raise
+    resource.download_count = (resource.download_count or 0) + 1
+    audit_file_download(
+        db,
+        request=request,
+        action=DOWNLOAD_ACTION_SUCCESS,
+        result="success",
+        resource_id=resource.id,
+        file_record=file_record,
+        is_public=resource.is_public,
+    )
+    db.commit()
+    return build_download_response(file_record, resolved_path)
+
+
+@router.get(f"{settings.api_prefix}/downloads/{{resource_id}}/download")
+def download_protected_resource(resource_id: int, request: Request, db: Session = Depends(get_db)):
+    current_user, auth_failure = resolve_active_user_from_request(db, request)
+    if not current_user:
+        audit_file_download(
+            db,
+            request=request,
+            action=DOWNLOAD_ACTION_DENIED,
+            result="failure",
+            resource_id=resource_id,
+            reason=auth_failure or "unauthorized",
+        )
+        db.commit()
+        raise HTTPException(status_code=401, detail="Could not validate credentials")
+    resource = db.get(DownloadResource, resource_id)
+    if not resource:
+        audit_file_download(
+            db,
+            request=request,
+            action=DOWNLOAD_ACTION_NOT_FOUND,
+            result="failure",
+            resource_id=resource_id,
+            user=current_user,
+            actor_type="user",
+            reason="resource_not_found",
+        )
+        db.commit()
+        raise HTTPException(status_code=404, detail="Download resource not found")
+    file_record = db.get(FileRecord, resource.file_id)
+    if not file_record:
+        audit_file_download(
+            db,
+            request=request,
+            action=DOWNLOAD_ACTION_NOT_FOUND,
+            result="failure",
+            resource_id=resource.id,
+            user=current_user,
+            actor_type="user",
+            reason="file_not_found",
+            is_public=resource.is_public,
+        )
+        db.commit()
+        raise HTTPException(status_code=404, detail="File not found")
+    try:
+        resolved_path = resolve_file_path(file_record)
+    except HTTPException as exc:
+        audit_file_download(
+            db,
+            request=request,
+            action=DOWNLOAD_ACTION_PATH_INVALID if exc.status_code == 403 else DOWNLOAD_ACTION_NOT_FOUND,
+            result="failure",
+            resource_id=resource.id,
+            file_record=file_record,
+            user=current_user,
+            actor_type="user",
+            reason="path_invalid" if exc.status_code == 403 else "file_not_found",
+            is_public=resource.is_public,
+        )
+        db.commit()
+        raise
+    resource.download_count = (resource.download_count or 0) + 1
+    audit_file_download(
+        db,
+        request=request,
+        action=DOWNLOAD_ACTION_SUCCESS,
+        result="success",
+        resource_id=resource.id,
+        file_record=file_record,
+        user=current_user,
+        actor_type="user",
+        is_public=resource.is_public,
+    )
+    db.commit()
+    return build_download_response(file_record, resolved_path)
 
 
 @router.post(f"{settings.api_prefix}/public/inquiries", response_model=APIResponse)
@@ -968,7 +1132,8 @@ def admin_update_institute(institute_id: int, payload: InstituteIn, current_user
 
 @router.get(f"{settings.api_prefix}/admin/files", response_model=APIResponse)
 def admin_list_files(_: User = Depends(require_admin), db: Session = Depends(get_db)):
-    return APIResponse(data=encode(db.scalars(select(FileRecord).order_by(FileRecord.created_at.desc())).all()))
+    files = db.scalars(select(FileRecord).order_by(FileRecord.created_at.desc())).all()
+    return APIResponse(data=encode([serialize_file_record(item) for item in files]))
 
 
 @router.post(f"{settings.api_prefix}/admin/files/upload", response_model=APIResponse)
@@ -1000,7 +1165,7 @@ async def admin_upload_file(
     write_audit_log(db, current_user.id, "files", "create", "file", str(record.id))
     db.commit()
     db.refresh(record)
-    return APIResponse(data=encode(record))
+    return APIResponse(data=encode(serialize_file_record(record)))
 
 
 @router.get(f"{settings.api_prefix}/admin/settings", response_model=APIResponse)
@@ -1214,7 +1379,9 @@ def admin_list_downloads(
     db: Session = Depends(get_db),
 ):
     query = select(DownloadResource).order_by(DownloadResource.sort_order.asc(), DownloadResource.created_at.desc())
-    return APIResponse(data=encode(paginate(query, db, page, page_size)))
+    result = paginate(query, db, page, page_size)
+    result["items"] = [serialize_download_resource_row(item, db) for item in result["items"]]
+    return APIResponse(data=result)
 
 
 @router.post(f"{settings.api_prefix}/admin/downloads", response_model=APIResponse)
@@ -1229,7 +1396,7 @@ def admin_create_download(payload: DownloadResourceIn, current_user: User = Depe
     if conflict_response:
         return conflict_response
     db.refresh(resource)
-    return APIResponse(data=encode(resource))
+    return APIResponse(data=serialize_download_resource_row(resource, db))
 
 
 @router.put(f"{settings.api_prefix}/admin/downloads/{{resource_id}}", response_model=APIResponse)
@@ -1244,7 +1411,7 @@ def admin_update_download(resource_id: int, payload: DownloadResourceIn, current
     if conflict_response:
         return conflict_response
     db.refresh(resource)
-    return APIResponse(data=encode(resource))
+    return APIResponse(data=serialize_download_resource_row(resource, db))
 
 
 @router.get(f"{settings.api_prefix}/admin/service-requests", response_model=APIResponse)

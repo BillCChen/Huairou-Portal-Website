@@ -35,6 +35,7 @@ P3-D 记录或增强以下事件：
 - admin-created user
 - role assignment
 - existing CMS audit events where `write_audit_log` is already used, including articles, cases, pages, banners, categories, tags, leaders, institutes, files, settings, and downloads
+- P3-E1 file download events where files are served through backend download endpoints
 
 P3-D 不记录所有 public GET 页面访问，也不记录公开内容浏览日志。
 
@@ -82,6 +83,8 @@ P3-D 不实现自动清理任务。后续运维阶段可补充归档或清理脚
 - 审计事件 tab：按 IP、账号、action/module 查询。
 - 登录记录 tab：按 IP、账号、登录方式和成功/失败查询。
 - User-Agent 只做简略展示，完整值通过 tooltip 查看。
+
+文件下载审计延续同一可见性边界。P3-E1 中 public / protected 文件下载的成功、拒绝、未找到和路径异常事件都进入 `AuditLog`，仍只在后台审计视图中查询。
 
 ## 7. Smoke
 
