@@ -1,6 +1,7 @@
+ARG NODE_BASE_IMAGE=node:22-alpine
 ARG NUXT_PUBLIC_API_BASE=http://localhost:8100/api/v1
 
-FROM node:22-alpine AS build
+FROM ${NODE_BASE_IMAGE} AS build
 
 ARG NUXT_PUBLIC_API_BASE
 ENV NUXT_PUBLIC_API_BASE=${NUXT_PUBLIC_API_BASE}
@@ -14,7 +15,7 @@ RUN corepack enable && pnpm install --filter web-portal... --no-frozen-lockfile
 COPY apps/web-portal /app/apps/web-portal
 RUN corepack enable && pnpm --dir apps/web-portal build
 
-FROM node:22-alpine
+FROM ${NODE_BASE_IMAGE} AS runtime
 
 WORKDIR /app
 ARG NUXT_PUBLIC_API_BASE

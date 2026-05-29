@@ -50,6 +50,7 @@
 - P1-G 已完成合并就绪审计：V1 总验收、route map 稳定性、forbidden artifact scan、basic secret scan、merge-tree 冲突检查和 18200 端口残留检查均通过；本阶段不 merge、不 push。
 - P2-A 已完成真实 SMTP password reset full-link UAT：临时 HTTPS tunnel、真实邮件送达、reset 页面打开、改密成功、旧密码拒绝、新密码登录成功和 token 复用拒绝均已脱敏记录。生产域名、正式 SMTP 运维手册、性能压测、安全扫描和 K8s 仍是后续事项。
 - P2-B 已新增生产域名部署配置模板：`deploy/docker/docker-compose.prod.yml`、`deploy/docker/.env.production.example`、`deploy/nginx/portal-prod.conf.example` 和 `docs/DEPLOYMENT_PORTAL_ECS.md`。本阶段只固化 Portal 部署模板，不执行服务器部署、不修改业务逻辑、不处理 Achievement 部署。
+- P2-B2 已新增部署镜像源兼容：生产 Dockerfile 基础镜像可通过 build args 配置，`docker-compose.prod.yml` 可从服务器本地 `.env.production` 传入 ECR Public Docker Official Images 路径。本阶段不修改业务逻辑，服务器仍需 pull 后重新运行 compose。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
 
@@ -129,6 +130,19 @@ P2-B adds versioned deployment templates for the ECS / Nginx / Docker environmen
 | Browser API base | TEMPLATE FIXED | Production web/admin API base points to `https://huairou.tech/api/v1`, not visitor-side `localhost`. |
 
 P2-B still does not mean production release readiness. The actual ECS deployment, production-domain smoke, backup policy, monitoring, performance testing, external security scanning, formal migrations, Kubernetes validation, Achievement deployment, and V2 systems remain separate later tracks.
+
+## 5d. P2-B2 Deployment Image Source Compatibility
+
+P2-B2 records deployment-only compatibility for ECS environments where Docker Hub official image resolution is unavailable through the configured registry mirror. It does not change auth, password reset, user lifecycle, V1 content CMS, SMS, or V2 business behavior.
+
+| Check | Status | Notes |
+|---|---|---|
+| Dockerfile base image args | ADDED | API, web, and admin Dockerfiles keep Docker Hub defaults and allow base image override through build args. |
+| Production compose build args | ADDED | `docker-compose.prod.yml` passes Python, Node, and Nginx base image variables from `.env.production`. |
+| Production env example | UPDATED | `deploy/docker/.env.production.example` uses ECR Public Docker Official Images paths that were reachable on the current Aliyun ECS test server. |
+| Deployment runbook | UPDATED | `docs/DEPLOYMENT_PORTAL_ECS.md` documents the Docker Hub mirror failure mode and the ECR Public override path. |
+
+P2-B2 still does not mean production release readiness. The server must pull the updated branch and rerun compose with server-local secrets before HTTPS deployment can be marked complete.
 
 ## 6. P0-3 First Validation Run
 

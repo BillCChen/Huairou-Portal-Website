@@ -22,6 +22,8 @@ services:
     build:
       context: ../..
       dockerfile: deploy/docker/api.Dockerfile
+      args:
+        PYTHON_BASE_IMAGE: ${PORTAL_PYTHON_BASE_IMAGE:-python:3.13-slim}
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-portal}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-portal}
@@ -69,6 +71,7 @@ services:
       context: ../..
       dockerfile: deploy/docker/web.Dockerfile
       args:
+        NODE_BASE_IMAGE: ${PORTAL_NODE_BASE_IMAGE:-node:22-alpine}
         NUXT_PUBLIC_API_BASE: ${PORTAL_WEB_PUBLIC_API_BASE:-https://huairou.tech/api/v1}
     restart: unless-stopped
     environment:
@@ -86,6 +89,8 @@ services:
       context: ../..
       dockerfile: deploy/docker/admin.Dockerfile
       args:
+        NODE_BASE_IMAGE: ${PORTAL_NODE_BASE_IMAGE:-node:22-alpine}
+        NGINX_BASE_IMAGE: ${PORTAL_NGINX_BASE_IMAGE:-nginx:1.27-alpine}
         VITE_API_BASE_URL: ${PORTAL_ADMIN_API_BASE:-https://huairou.tech/api/v1}
     restart: unless-stopped
     environment:
