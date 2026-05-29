@@ -173,7 +173,24 @@ P3-A is a local-only account experience and password policy stage. It does not d
 | Admin password hint | UPDATED | Admin user creation displays the same password rule hint. |
 | Backend smoke | ADDED | `scripts/smoke_password_policy_backend.sh` covers weak/strong password and current-password reuse paths. |
 
-P3-A still does not mean production release readiness. Real registration email, broader account settings, password history, session-expiry UX, performance testing, external security scanning, formal migrations, Kubernetes validation, and V2 business systems remain separate later tracks.
+P3-A still does not mean production release readiness. Broader account settings, password history, session-expiry UX, performance testing, external security scanning, formal migrations, Kubernetes validation, and V2 business systems remain separate later tracks.
+
+## 5g. P3-B Account Email Notifications
+
+P3-B is a local-only account email notification stage. It does not deploy to ECS, does not push, does not enable SMTP, does not send real email, does not change SMS/SSO, and does not modify deployment templates.
+
+| Check | Status | Notes |
+|---|---|---|
+| Shared plaintext sender | ADDED | `apps/api-server/app/services/email_notifications.py` centralizes `dev_outbox`, `disabled`, and SMTP provider boundaries. |
+| Account notification service | ADDED | `apps/api-server/app/services/account_notifications.py` defines plaintext templates for registration, approval, rejection, admin-created users, and password changes. |
+| Registration submitted email | ADDED | `POST /api/v1/auth/register` writes a local `dev_outbox` notification after a pending registration is created. |
+| Approval/rejection email | ADDED | Admin approve/reject flows write local notifications; rejection includes the admin reason. |
+| Reject reason policy | UPDATED | `POST /api/v1/admin/users/{user_id}/reject` requires a trimmed reason of 20–1000 characters. |
+| Admin-created user email | ADDED | The account-created email instructs users to use forgot password and does not include the initial password. |
+| Password changed email | ADDED | Successful email password reset confirmation writes a safety notification without token or reset link. |
+| Backend smoke | ADDED | `scripts/smoke_account_notifications_backend.sh` validates local `dev_outbox` events and secret boundaries. |
+
+P3-B still does not mean production release readiness. Real SMTP production-domain UAT, HTML email templates, account settings, password history, session-expiry UX, performance testing, external security scanning, formal migrations, Kubernetes validation, and V2 business systems remain separate later tracks.
 
 ## 6. P0-3 First Validation Run
 

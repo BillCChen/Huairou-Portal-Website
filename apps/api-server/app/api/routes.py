@@ -59,6 +59,12 @@ from app.schemas import (
     UserOut,
     UserRoleUpdateIn,
 )
+from app.services.account_notifications import (
+    send_admin_created_user_notification,
+    send_registration_approved_notification,
+    send_registration_rejected_notification,
+    send_registration_submitted_notification,
+)
 from app.services.password_reset import confirm_password_reset, create_password_reset_request
 from app.services.password_policy import validate_password_policy
 
@@ -572,6 +578,7 @@ def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
     db.add(user)
     db.flush()
     db.add(RegistrationApplication(user_id=user.id, review_status="pending"))
+    send_registration_submitted_notification(db, user)
     db.commit()
     return APIResponse(data={"status": "pending_review", "user_id": user.id})
 
@@ -1008,6 +1015,7 @@ def admin_create_user(payload: AdminUserCreateIn, current_user: User = Depends(r
         str(user.id),
         {"role_code": role.code, "status": USER_STATUS_ACTIVE},
     )
+    send_admin_created_user_notification(db, user)
     db.commit()
     db.refresh(user)
     return APIResponse(data=serialize_admin_user(user))
@@ -1026,6 +1034,7 @@ def admin_approve_user(user_id: int, payload: ReviewIn, current_user: User = Dep
         application.reviewed_by = current_user.id
         application.reviewed_at = datetime.now(UTC)
     write_audit_log(db, current_user.id, "users", "approve", "user", str(user_id), {"status": USER_STATUS_ACTIVE})
+    send_registration_approved_notification(db, user)
     db.commit()
     db.refresh(user)
     return APIResponse(data=serialize_admin_user(user))
@@ -1036,11 +1045,12 @@ def admin_reject_user(user_id: int, payload: UserRejectIn, current_user: User = 
     user = get_user_or_404(db, user_id)
     if user.status != USER_STATUS_PENDING:
         raise HTTPException(status_code=400, detail="Only pending users can be rejected")
+    reason = payload.reason.strip()
     application = db.scalar(select(RegistrationApplication).where(RegistrationApplication.user_id == user_id))
     user.status = USER_STATUS_REJECTED
     if application:
         application.review_status = "rejected"
-        application.review_comment = payload.reason
+        application.review_comment = reason
         application.reviewed_by = current_user.id
         application.reviewed_at = datetime.now(UTC)
     write_audit_log(
@@ -1050,8 +1060,9 @@ def admin_reject_user(user_id: int, payload: UserRejectIn, current_user: User = 
         "reject",
         "user",
         str(user_id),
-        {"status": USER_STATUS_REJECTED, "has_reason": bool(payload.reason)},
+        {"status": USER_STATUS_REJECTED, "has_reason": True},
     )
+    send_registration_rejected_notification(db, user, reason)
     db.commit()
     db.refresh(user)
     return APIResponse(data=serialize_admin_user(user))

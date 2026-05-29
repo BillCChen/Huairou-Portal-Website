@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class APIResponse(BaseModel):
@@ -159,7 +159,14 @@ class AdminUserCreateIn(BaseModel):
 
 
 class UserRejectIn(BaseModel):
-    reason: str | None = Field(default=None, max_length=500)
+    reason: str = Field(min_length=20, max_length=1000)
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def normalize_reason(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.strip()
+        return value
 
 
 class UserRoleUpdateIn(BaseModel):

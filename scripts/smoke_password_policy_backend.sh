@@ -208,9 +208,13 @@ with SessionLocal() as db:
         request_ip="127.0.0.1",
         user_agent="password-policy-smoke",
     )
-    outbox_files = sorted(Path(settings.password_reset_dev_outbox_dir).glob("*.txt"))
-    assert len(outbox_files) == 1
-    outbox_text = outbox_files[0].read_text(encoding="utf-8")
+    reset_messages = [
+        file.read_text(encoding="utf-8")
+        for file in sorted(Path(settings.password_reset_dev_outbox_dir).glob("*.txt"))
+        if "Subject: Portal password reset" in file.read_text(encoding="utf-8")
+    ]
+    assert len(reset_messages) == 1
+    outbox_text = reset_messages[0]
     match = re.search(r"token=([A-Za-z0-9_\-]+)", outbox_text)
     assert match is not None
     reset_token = match.group(1)

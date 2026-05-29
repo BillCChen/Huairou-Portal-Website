@@ -237,13 +237,17 @@ import re
 import sys
 from pathlib import Path
 files = sorted(Path(sys.argv[1]).glob("*.txt"))
-if len(files) != 1:
-    raise SystemExit(f"expected exactly one outbox file, found {len(files)}")
-text = files[-1].read_text(encoding="utf-8")
-match = re.search(r"token=([A-Za-z0-9_\-]+)", text)
-if not match:
-    raise SystemExit("missing reset token in outbox")
-print(match.group(1))
+matches = []
+for file in files:
+    text = file.read_text(encoding="utf-8")
+    if "Subject: Portal password reset" not in text:
+        continue
+    match = re.search(r"token=([A-Za-z0-9_\-]+)", text)
+    if match:
+        matches.append(match.group(1))
+if len(matches) != 1:
+    raise SystemExit(f"expected exactly one reset token message, found {len(matches)}")
+print(matches[-1])
 PY
 )"
 
@@ -287,13 +291,17 @@ import re
 import sys
 from pathlib import Path
 files = sorted(Path(sys.argv[1]).glob("*.txt"))
-if len(files) != 2:
-    raise SystemExit(f"expected two outbox files, found {len(files)}")
-text = files[-1].read_text(encoding="utf-8")
-match = re.search(r"token=([A-Za-z0-9_\-]+)", text)
-if not match:
-    raise SystemExit("missing reset token in outbox")
-print(match.group(1))
+matches = []
+for file in files:
+    text = file.read_text(encoding="utf-8")
+    if "Subject: Portal password reset" not in text:
+        continue
+    match = re.search(r"token=([A-Za-z0-9_\-]+)", text)
+    if match:
+        matches.append(match.group(1))
+if len(matches) != 2:
+    raise SystemExit(f"expected two reset token messages, found {len(matches)}")
+print(matches[-1])
 PY
 )"
 
@@ -322,6 +330,8 @@ combined = " ".join((row[0] or "") for row in conn.execute("select coalesce(deta
 for file in outbox_dir.glob("*.txt"):
     text = file.read_text(encoding="utf-8")
     token_fragment = "token="
+    if token_fragment not in text:
+        continue
     assert token_fragment in text
     token = text.split(token_fragment, 1)[1].split()[0]
     assert token not in combined

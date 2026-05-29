@@ -38,6 +38,7 @@ const loading = ref(false);
 const createDialogVisible = ref(false);
 const creating = ref(false);
 const passwordPolicyHint = "密码需为 8–20 位，并至少包含大写字母、小写字母、数字、特殊字符中的 3 类。";
+const rejectReasonHint = "请填写审核未通过原因，不少于 20 字。该说明将发送给申请人。";
 
 const createForm = reactive<AdminUserCreatePayload>({
   username: "",
@@ -139,12 +140,20 @@ const approve = async (id: number) => {
 
 const reject = async (id: number) => {
   try {
-    const result = await ElMessageBox.prompt("请填写驳回原因，可留空。", "驳回注册申请", {
+    const result = await ElMessageBox.prompt(rejectReasonHint, "驳回注册申请", {
       confirmButtonText: "驳回",
       cancelButtonText: "取消",
-      inputPlaceholder: "驳回原因",
+      inputPlaceholder: "请填写具体原因，不少于 20 字",
+      inputType: "textarea",
+      inputValidator: (value) => (value || "").trim().length >= 20,
+      inputErrorMessage: "审核未通过原因不少于 20 字",
     });
-    await adminUsersApi.reject(id, result.value || "");
+    const reason = (result.value || "").trim();
+    if (reason.length < 20) {
+      ElMessage.error("审核未通过原因不少于 20 字");
+      return;
+    }
+    await adminUsersApi.reject(id, reason);
     ElMessage.success("已驳回");
     await load();
   } catch (error) {
