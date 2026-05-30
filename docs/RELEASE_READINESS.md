@@ -60,6 +60,7 @@
 - P3-E1 已新增文件下载门禁与审计本地开发：public 文件允许匿名通过后端下载 endpoint 下载并审计；protected 文件要求 active 登录用户；下载成功、拒绝、未找到和路径异常均记录 IP/User-Agent；新增 `scripts/smoke_file_download_security_backend.sh` 使用 `203.0.113.20` 验证门禁和审计。本阶段不做病毒扫描、`scan_status`、对象存储、文件内容加密、服务器部署或 push。
 - P3-E2 已新增文件扫描状态机与 fail-closed 下载策略本地开发：`FileRecord` 记录 `scan_status`，新上传和历史空状态默认 `pending`；public/protected 下载都要求 `clean`；`pending`、`infected`、`failed`、`skipped` 均拒绝并审计；新增 mock scanner 和 `scripts/smoke_file_scan_status_backend.sh` 使用 `203.0.113.30` 验证状态门禁。本阶段不接真实 ClamAV，不做扫描 worker、对象存储、文件内容加密、服务器部署或 push。
 - P3-E3 已新增本地 ClamAV `clamd` worker 试验：`file_scanning.py` 增加 TCP `clamd` provider；`scripts/run_file_scan_worker.py` 提供一次性 pending 文件扫描；admin 文件库支持重新扫描和 `super_admin` 手动放行；`scripts/smoke_file_clamav_worker_backend.sh` 使用 EICAR 验证 clean / infected / failed / manual_override。本阶段不部署服务器、不 push、不做常驻 worker 或队列。
+- P3 security hardening readiness 已准备受控 ECS 部署：新增 `docs/P3_SECURITY_HARDENING_READINESS.md`，并补齐 production compose 的 P3-C/P3-E3 运行时配置透传和 API 镜像内 one-shot worker 入口。本阶段仍不 merge main、不 push main、不声称服务器已部署。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
 
@@ -302,10 +303,24 @@ P3-E3 is a local-only ClamAV worker experiment. It does not deploy to ECS, does 
 | Admin rescan | ADDED | Admin can trigger a single-file scan using the configured provider or explicit provider. |
 | Manual override | ADDED | `super_admin` can mark a file clean with `scan_engine=manual_override` only after a 20–1000 character reason; audit records the override. |
 | Download gate | PRESERVED | Public and protected downloads still require `scan_status=clean`; manual override is visibly distinguished by `scan_engine=manual_override`. |
-| Local ClamAV compose | ADDED | `deploy/docker/compose.clamav.local.yml` exposes clamd at `127.0.0.1:3310` for local smoke only; `CLAMAV_IMAGE` can switch between the tested Quay image and official ClamAV tags. |
+| Local ClamAV compose | ADDED | `deploy/docker/compose.clamav.local.yml` exposes clamd at `127.0.0.1:3310`, starts `clamd` directly with the image-bundled virus database, and keeps `CLAMAV_IMAGE` configurable. |
 | EICAR smoke | ADDED | `scripts/smoke_file_clamav_worker_backend.sh` verifies normal clean, EICAR infected, clamd unavailable failed, admin rescan, and manual override. |
 
 P3-E3 still does not mean production release readiness. Server ClamAV deployment, freshclam monitoring, persistent worker or queue, resource limits, formal migrations, performance testing, Kubernetes validation, and V2 business systems remain separate later tracks.
+
+## 5o. P3 Security Hardening Deployment Readiness
+
+P3 security hardening readiness prepares a controlled ECS deployment for the P3 branch. It does not merge `main`, does not push `main`, and does not claim that the server deployment has completed.
+
+| Check | Status | Notes |
+|---|---|---|
+| Readiness document | ADDED | `docs/P3_SECURITY_HARDENING_READINESS.md` summarizes P3-A through P3-E3 evidence, deployment plan, risks, and secret boundaries. |
+| Production runtime config | UPDATED | `docker-compose.prod.yml` passes `ACCESS_TOKEN_EXPIRE_MINUTES`, `FILE_SCAN_PROVIDER`, `CLAMAV_*`, and file scan worker parameters into the API container. |
+| Production env example | UPDATED | `.env.production.example` documents non-secret P3 runtime keys and the configurable `CLAMAV_IMAGE`. |
+| API worker entry | UPDATED | The API image includes `scripts/run_file_scan_worker.py`, and the worker can locate the API package in both local repo and container layouts. |
+| Deployment strategy | DOCUMENTED | Deploy the P3 branch first, back up PostgreSQL and file data, enable server-local SMTP and ClamAV, run the one-shot worker, then verify Portal and Achievement. The ClamAV deployment candidate uses direct `clamd` startup; freshclam operations remain a later hardening gate. |
+
+This readiness still does not mean production release readiness. ECS deployment, backup verification, SMTP server-local secret injection, ClamAV service health, one-shot worker execution, public HTTPS smoke, performance testing, external security scanning, formal migrations, and later `main` merge remain separate gates.
 
 ## 6. P0-3 First Validation Run
 

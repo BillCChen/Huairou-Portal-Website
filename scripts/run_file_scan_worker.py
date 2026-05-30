@@ -9,8 +9,20 @@ from datetime import datetime, UTC
 from pathlib import Path
 
 
-ROOT_DIR = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT_DIR / "apps/api-server"))
+SCRIPT_PATH = Path(__file__).resolve()
+ROOT_DIR = SCRIPT_PATH.parents[1]
+APP_ROOT_CANDIDATES = [
+    ROOT_DIR / "apps/api-server",
+    ROOT_DIR,
+    Path("/app"),
+]
+
+for candidate in APP_ROOT_CANDIDATES:
+    if (candidate / "app").is_dir():
+        sys.path.insert(0, str(candidate))
+        break
+else:
+    raise RuntimeError("Cannot locate API package for file scan worker")
 
 from fastapi import HTTPException
 from sqlalchemy import select

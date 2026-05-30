@@ -7,6 +7,7 @@ COPY apps/api-server/requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 COPY apps/api-server /app
+COPY scripts/run_file_scan_worker.py /app/scripts/run_file_scan_worker.py
 
 EXPOSE 8000
 
