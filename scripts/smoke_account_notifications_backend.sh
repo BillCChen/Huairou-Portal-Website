@@ -87,12 +87,14 @@ if [ -z "${selected_python}" ]; then
 fi
 
 DB_PATH="${RUNTIME_DIR}/portal_account_notifications_smoke.sqlite3"
+DISABLED_DB_PATH="${RUNTIME_DIR}/portal_account_notifications_disabled_smoke.sqlite3"
 OUTBOX_DIR="${RUNTIME_DIR}/mail_outbox"
+DISABLED_OUTBOX_DIR="${RUNTIME_DIR}/disabled_mail_outbox"
 UPLOAD_DIR="${RUNTIME_DIR}/uploads"
 
-rm -f "${DB_PATH}"
-rm -rf "${OUTBOX_DIR}"
-mkdir -p "${OUTBOX_DIR}" "${UPLOAD_DIR}"
+rm -f "${DB_PATH}" "${DISABLED_DB_PATH}"
+rm -rf "${OUTBOX_DIR}" "${DISABLED_OUTBOX_DIR}"
+mkdir -p "${OUTBOX_DIR}" "${DISABLED_OUTBOX_DIR}" "${UPLOAD_DIR}"
 
 log "checking account notification events"
 (
@@ -249,5 +251,61 @@ with SessionLocal() as db:
     assert_no_sensitive_fragments(audit_payload, [initial_password, reset_token])
 
 print("account notification backend smoke passed")
+PY
+)
+
+log "checking disabled provider does not block account workflow"
+(
+  cd apps/api-server
+  exec env \
+    DATABASE_URL="sqlite:///${DISABLED_DB_PATH}" \
+    UPLOAD_DIR="${UPLOAD_DIR}" \
+    EMAIL_PROVIDER="disabled" \
+    PASSWORD_RESET_DEV_OUTBOX_DIR="${DISABLED_OUTBOX_DIR}" \
+    PUBLIC_FRONTEND_BASE_URL="http://127.0.0.1:3100" \
+    INIT_SAMPLE_DATA="true" \
+    "${VENV_DIR}/bin/python" - <<'PY'
+from pathlib import Path
+
+from sqlalchemy import select
+
+from app.api.routes import admin_approve_user, register_user
+from app.core.config import settings
+from app.db.models import AuditLog, User
+from app.db.seed import seed_database
+from app.db.session import Base, SessionLocal, engine
+from app.schemas import RegisterRequest, ReviewIn
+
+
+Base.metadata.create_all(bind=engine)
+with SessionLocal() as db:
+    seed_database(db)
+    admin = db.scalar(select(User).where(User.username == settings.admin_username))
+    assert admin is not None
+
+    disabled_password = "Notify789!"
+    submitted = register_user(
+        RegisterRequest(
+            **{
+                "real_name": "通知关闭用户",
+                "organization": "Account Notification Disabled Smoke",
+                "mobile": "18700000004",
+                "email": "notify-disabled@example.com",
+                "expertise": "成果转化",
+                "password": disabled_password,
+            }
+        ),
+        db,
+    )
+    user_id = submitted.data["user_id"]
+    admin_approve_user(user_id, ReviewIn(review_comment="disabled provider approval"), admin, db)
+
+    assert not list(Path(settings.password_reset_dev_outbox_dir).glob("*.txt"))
+    audits = db.scalars(select(AuditLog).where(AuditLog.module == "notifications")).all()
+    assert {audit.action for audit in audits} >= {"registration_submitted", "registration_approved"}
+    assert all(audit.detail_json.get("provider") == "disabled" for audit in audits)
+    assert all(audit.detail_json.get("sent") is False for audit in audits)
+
+print("disabled provider main workflow: PASS")
 PY
 )

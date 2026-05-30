@@ -89,5 +89,6 @@ Test IPs:
 ## 9. Remaining Work
 
 - P4-B3 or later may evaluate CAPTCHA, WAF, device fingerprinting, GeoIP, or external risk signals.
-- P4-C covers account notification parity outside login lockout mail.
+- P4-C1 covers account notification parity outside login lockout mail with local `dev_outbox` / `disabled` validation only.
+- P4-C2 remains the separate real SMTP UAT stage.
 - Server deployment and real SMTP behavior require a separately authorized rollout.

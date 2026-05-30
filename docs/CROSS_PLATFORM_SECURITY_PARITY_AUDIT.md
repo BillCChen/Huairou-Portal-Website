@@ -1,8 +1,8 @@
-# Cross-platform Security Parity Audit: P4-B2 Login Lockout Alignment
+# Cross-platform Security Parity Audit: P4-C1 Account Notification Alignment
 
 ## 1. Scope
 
-本文件记录 P4-B1 至 P4-B2 双平台账号认证策略、前端体验、登录失败锁定和限流对齐结果。P4-B 阶段同时覆盖 Portal-Website 与 Achievement-Transformation，不拆成两个独立平台任务。
+本文件记录 P4-B1 至 P4-C1 双平台账号认证、登录保护与账号通知语义对齐结果。P4 阶段同时覆盖 Portal-Website 与 Achievement-Transformation，不拆成两个独立平台任务。
 
 本阶段覆盖：
 
@@ -13,7 +13,7 @@
 
 本阶段不覆盖：
 
-- 账号邮件通知，留 P4-C。
+- P4-C2 真实 SMTP UAT。
 - SMS、SSO、文件安全、ClamAV、监控、服务器部署和 main merge。
 
 ## 2. Portal Changes
@@ -61,7 +61,7 @@ P4-B1 新增：
 | Expired-session prompt | already present | added | aligned |
 | Profile/current-user UX | already present | added minimal profile | aligned |
 | Login lockout/rate limiting | added durable account+IP and IP lockouts | adapted to same durable policy | aligned in P4-B2 |
-| Email notification | out of scope | out of scope | defer to P4-C |
+| Email notification | P3-B/P3-B2 complete; P4-C1 regression only | P4-C1 added account event notifications | aligned locally |
 
 ## 5. Validation
 
@@ -104,4 +104,26 @@ Portal is implementation-heavy in P4-B2 because it did not previously have a dur
 
 ## 8. Next Recommended Step
 
-P4-C should align account notification semantics outside login lockout mail, including registration submitted, approval, rejection, administrator-created user, and password-changed notifications.
+P4-C2 should run controlled real SMTP UAT for Achievement account event notifications after the local provider-only P4-C1 result is reviewed.
+
+## 9. P4-C1 Account Notification Alignment
+
+P4-C1 aligns account event notification semantics outside login lockout mail.
+
+Portal remains the regression baseline:
+
+- Registration submitted, approval accepted, rejection with reason, administrator-created user, and password-changed notifications already exist.
+- Notification sending uses the same `dev_outbox` / `disabled` / `smtp` provider boundary as password reset and lockout mail.
+- Account notification failures are recorded in notification audit details and do not roll back registration, review, administrator creation, or password-change flows.
+- `scripts/smoke_account_notifications_backend.sh` now covers `dev_outbox` events and verifies `disabled` provider does not block the account workflow.
+- P4-C1 does not rerun the P3-B2 real SMTP UAT.
+
+Achievement closes the local semantic gap:
+
+- It adds plaintext account notifications for registration submitted, approval accepted, rejection, administrator-created user, and password changed.
+- It reuses the existing email provider primitives instead of adding a second SMTP sender.
+- Rejection reason is enforced as trimmed 20-1000 characters and included in the rejection email.
+- Administrator-created user email does not include the initial password and instructs the user to use password reset.
+- Password-changed notification does not include a token or reset URL.
+
+Both platforms validate P4-C1 with `dev_outbox` / `disabled` only. Real SMTP delivery remains P4-C2.

@@ -50,6 +50,8 @@ P3-B 不修改 password reset token/hash/expiry/consumed 语义。
 | `disabled` | 不发送邮件，主业务流程继续 |
 | `smtp` | 保留 provider 能力；P3-B2 已在本地真实 SMTP UAT 中验证 |
 
+P4-C1 复核该 provider 语义时不改变 P3-B 账号通知行为：账号通知失败或 provider 关闭不会回滚注册、审核、管理员创建账号或密码修改流程，结果通过通知审计记录可追溯。
+
 真实 SMTP 生产部署仍应在后续独立阶段执行。
 
 ## 8. 本地验证
@@ -60,7 +62,7 @@ P3-B 不修改 password reset token/hash/expiry/consumed 语义。
 PORTAL_BACKEND_PYTHON=python3.11 ./scripts/smoke_account_notifications_backend.sh
 ```
 
-该 smoke 使用隔离 SQLite runtime 和 `dev_outbox`，覆盖注册提交、审核通过、审核拒绝 reason 校验、管理员创建账号、密码修改成功通知，并验证管理员创建账号邮件不包含初始密码。
+该 smoke 使用隔离 SQLite runtime 和 `dev_outbox`，覆盖注册提交、审核通过、审核拒绝 reason 校验、管理员创建账号、密码修改成功通知，并验证管理员创建账号邮件不包含初始密码。P4-C1 还在同一 smoke 中增加 `EMAIL_PROVIDER=disabled` 回归，确认 provider 关闭时主账号流程继续且不写出站邮件。
 
 P3-B2 新增真实 SMTP UAT 脚本：
 
