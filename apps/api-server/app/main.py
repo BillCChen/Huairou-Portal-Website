@@ -59,6 +59,25 @@ def ensure_sqlite_schema_compatibility():
             "failure_reason": "VARCHAR(100)",
         },
     )
+    ensure_sqlite_columns(
+        "login_lockouts",
+        {
+            "lockout_type": "VARCHAR(30)",
+            "normalized_identifier": "VARCHAR(255)",
+            "user_id": "INTEGER",
+            "ip_address": "VARCHAR(50)",
+            "locked_until": "DATETIME",
+            "reason": "VARCHAR(100)",
+            "failure_count": "INTEGER DEFAULT 0",
+            "window_started_at": "DATETIME",
+            "email_sent_at": "DATETIME",
+            "unlocked_at": "DATETIME",
+            "unlocked_by_user_id": "INTEGER",
+            "unlock_reason": "TEXT",
+            "created_at": "DATETIME",
+            "updated_at": "DATETIME",
+        },
+    )
 
 
 @asynccontextmanager

@@ -76,6 +76,10 @@ export type AdminUserCreatePayload = {
   role_code: string;
 };
 
+export type LoginLockoutUnlockPayload = {
+  reason: string;
+};
+
 export const adminUsersApi = {
   list(params: { page: number; page_size: number; status?: string }) {
     return unwrap<{ items: any[]; total: number; page: number; page_size: number }>(
@@ -104,5 +108,23 @@ export const adminUsersApi = {
   },
   updateRole(id: number, roleCode: string) {
     return unwrap<any>(api.put(`/admin/users/${id}/role`, { role_code: roleCode }));
+  },
+};
+
+export const adminLoginLockoutsApi = {
+  list(params: {
+    page: number;
+    page_size: number;
+    ip?: string;
+    username?: string;
+    lockout_type?: string;
+    active?: boolean;
+  }) {
+    return unwrap<{ items: any[]; total: number; page: number; page_size: number }>(
+      api.get("/admin/login-lockouts", { params }),
+    );
+  },
+  unlock(id: number, payload: LoginLockoutUnlockPayload) {
+    return unwrap<any>(api.post(`/admin/login-lockouts/${id}/unlock`, payload));
   },
 };

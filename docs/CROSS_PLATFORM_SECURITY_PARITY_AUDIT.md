@@ -1,8 +1,8 @@
-# Cross-platform Security Parity Audit: P4-B1 Account Authentication
+# Cross-platform Security Parity Audit: P4-B2 Login Lockout Alignment
 
 ## 1. Scope
 
-本文件记录 P4-B1 双平台账号认证策略与前端体验对齐结果。P4-B1 同时覆盖 Portal-Website 与 Achievement-Transformation，不拆成两个独立平台任务。
+本文件记录 P4-B1 至 P4-B2 双平台账号认证策略、前端体验、登录失败锁定和限流对齐结果。P4-B 阶段同时覆盖 Portal-Website 与 Achievement-Transformation，不拆成两个独立平台任务。
 
 本阶段覆盖：
 
@@ -13,7 +13,6 @@
 
 本阶段不覆盖：
 
-- 登录失败锁定/限流，留 P4-B2。
 - 账号邮件通知，留 P4-C。
 - SMS、SSO、文件安全、ClamAV、监控、服务器部署和 main merge。
 
@@ -61,7 +60,7 @@ P4-B1 新增：
 | Current password reuse rejection | already present | added for reset confirm | aligned |
 | Expired-session prompt | already present | added | aligned |
 | Profile/current-user UX | already present | added minimal profile | aligned |
-| Login lockout/rate limiting | out of scope | already present | defer to P4-B2 |
+| Login lockout/rate limiting | added durable account+IP and IP lockouts | adapted to same durable policy | aligned in P4-B2 |
 | Email notification | out of scope | out of scope | defer to P4-C |
 
 ## 5. Validation
@@ -88,6 +87,21 @@ Achievement validation for this stage includes:
 - No token, reset link, SMTP password, database password, admin password, full email, or plaintext password is committed.
 - No deployment, server edit, push, main merge, rebase, amend, or tag deletion was performed.
 
-## 7. Next Recommended Step
+## 7. P4-B2 Login Lockout Alignment
 
-P4-B2 should align login failure lockout and rate-limiting semantics across both platforms. Achievement already has stronger baseline evidence; Portal should be adapted carefully without copying unrelated Achievement code or weakening existing Portal account lifecycle behavior.
+P4-B2 extends the shared account-authentication baseline:
+
+- Both platforms use account+IP lockout after 10 failed attempts in 24 hours.
+- Both platforms use IP-global lockout after 30 failed attempts in 24 hours across account identifiers.
+- Both lockout types last 24 hours by default.
+- Existing accounts with email receive one account+IP lockout notification through the local provider boundary.
+- Missing accounts receive no email.
+- IP-global lockout does not send mass notifications.
+- Administrator unlock requires a trimmed 20-1000 character reason and writes audit evidence.
+- Login responses stay generic and do not reveal account existence.
+
+Portal is implementation-heavy in P4-B2 because it did not previously have a durable login lockout model. Achievement is adaptation-heavy because it already had an account-abuse baseline but needed account+IP/IP-wide parity, notification controls, and unlock reason enforcement.
+
+## 8. Next Recommended Step
+
+P4-C should align account notification semantics outside login lockout mail, including registration submitted, approval, rejection, administrator-created user, and password-changed notifications.

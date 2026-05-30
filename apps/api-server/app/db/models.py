@@ -292,3 +292,21 @@ class LoginLog(Base):
     success: Mapped[bool] = mapped_column(Boolean, default=True)
     failure_reason: Mapped[str | None] = mapped_column(String(100))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class LoginLockout(TimestampMixin, Base):
+    __tablename__ = "login_lockouts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    lockout_type: Mapped[str] = mapped_column(String(30), index=True)
+    normalized_identifier: Mapped[str | None] = mapped_column(String(255), index=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True)
+    ip_address: Mapped[str | None] = mapped_column(String(50), index=True)
+    locked_until: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    reason: Mapped[str] = mapped_column(String(100))
+    failure_count: Mapped[int] = mapped_column(Integer, default=0)
+    window_started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    email_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    unlocked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    unlocked_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    unlock_reason: Mapped[str | None] = mapped_column(Text())

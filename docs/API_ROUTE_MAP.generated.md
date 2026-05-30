@@ -32,6 +32,8 @@
 | GET | `/api/v1/admin/leaders` | `admin_list_leaders` |
 | POST | `/api/v1/admin/leaders` | `admin_create_leader` |
 | PUT | `/api/v1/admin/leaders/{leader_id}` | `admin_update_leader` |
+| GET | `/api/v1/admin/login-lockouts` | `admin_login_lockouts` |
+| POST | `/api/v1/admin/login-lockouts/{lockout_id}/unlock` | `admin_unlock_login_lockout` |
 | GET | `/api/v1/admin/login-logs` | `admin_login_logs` |
 | GET | `/api/v1/admin/pages` | `admin_list_pages` |
 | POST | `/api/v1/admin/pages` | `admin_create_page` |
@@ -80,4 +82,4 @@
 
 ## Summary
 
-- Total routes found: 73
+- Total routes found: 75

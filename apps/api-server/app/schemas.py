@@ -173,6 +173,17 @@ class UserRoleUpdateIn(BaseModel):
     role_code: str = Field(min_length=1, max_length=50)
 
 
+class LoginLockoutUnlockIn(BaseModel):
+    reason: str = Field(min_length=20, max_length=1000)
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def normalize_reason(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+
 class ServiceRequestIn(BaseModel):
     type: str = "consultation"
     subject: str

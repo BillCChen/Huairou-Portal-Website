@@ -23,6 +23,7 @@ from app.db.models import (
     FileRecord,
     Institute,
     Leader,
+    LoginLockout,
     LoginLog,
     Page,
     RegistrationApplication,
@@ -45,6 +46,7 @@ from app.schemas import (
     FileScanOverrideIn,
     InstituteIn,
     LoginRequest,
+    LoginLockoutUnlockIn,
     LeaderIn,
     PageIn,
     PasswordResetConfirmIn,
@@ -97,6 +99,15 @@ from app.services.file_scanning import (
 from app.services.password_reset import confirm_password_reset, create_password_reset_request
 from app.services.password_policy import validate_password_policy
 from app.services.request_context import RequestMeta, current_request_meta, extract_request_meta, get_client_ip, get_user_agent
+from app.services.login_lockout import (
+    LOGIN_LOCKOUT_GENERIC_MESSAGE,
+    LOCKOUT_IP,
+    enforce_login_not_locked,
+    lockout_is_active,
+    now_utc,
+    serialize_login_lockout,
+    update_login_lockouts_after_failure,
+)
 
 
 router = APIRouter()
@@ -806,6 +817,8 @@ def confirm_password_reset_route(payload: PasswordResetConfirmIn, db: Session = 
 
 @router.post(f"{settings.api_prefix}/auth/login/password", response_model=APIResponse)
 def login_password(payload: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    request_meta = extract_request_meta(request)
+    enforce_login_not_locked(db, identifier=payload.username, request_meta=request_meta)
     user = db.scalar(select(User).where(User.username == payload.username))
     password_ok = bool(user and verify_password(payload.password, user.password_hash))
     if not user or not password_ok or user.status != "active":
@@ -819,8 +832,10 @@ def login_password(payload: LoginRequest, request: Request, db: Session = Depend
             request=request,
             failure_reason=failure_reason,
         )
+        db.flush()
+        update_login_lockouts_after_failure(db, identifier=payload.username, user=user, request_meta=request_meta)
         db.commit()
-        raise HTTPException(status_code=400, detail="Invalid credentials")
+        raise HTTPException(status_code=400, detail=LOGIN_LOCKOUT_GENERIC_MESSAGE)
     token = create_access_token(str(user.id))
     write_login_log(
         db,
@@ -1689,3 +1704,68 @@ def admin_login_logs(
     result = paginate(query, db, page, page_size)
     result["items"] = [serialize_login_log(item) for item in result["items"]]
     return APIResponse(data=result)
+
+
+@router.get(f"{settings.api_prefix}/admin/login-lockouts", response_model=APIResponse)
+def admin_login_lockouts(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    ip: str | None = None,
+    username: str | None = None,
+    lockout_type: str | None = None,
+    active: bool | None = None,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    current_time = now_utc()
+    query = select(LoginLockout).order_by(LoginLockout.created_at.desc(), LoginLockout.id.desc())
+    if ip and ip.strip():
+        query = query.where(LoginLockout.ip_address.ilike(f"%{ip.strip()}%"))
+    if username and username.strip():
+        query = query.where(LoginLockout.normalized_identifier.ilike(f"%{username.strip().lower()}%"))
+    if lockout_type and lockout_type.strip():
+        query = query.where(LoginLockout.lockout_type == lockout_type.strip())
+    if active is True:
+        query = query.where(LoginLockout.unlocked_at.is_(None), LoginLockout.locked_until > current_time)
+    elif active is False:
+        query = query.where(or_(LoginLockout.unlocked_at.is_not(None), LoginLockout.locked_until <= current_time))
+    result = paginate(query, db, page, page_size)
+    result["items"] = [serialize_login_lockout(item) for item in result["items"]]
+    return APIResponse(data=result)
+
+
+@router.post(f"{settings.api_prefix}/admin/login-lockouts/{{lockout_id}}/unlock", response_model=APIResponse)
+def admin_unlock_login_lockout(
+    lockout_id: int,
+    payload: LoginLockoutUnlockIn,
+    request: Request,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    item = db.get(LoginLockout, lockout_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Login lockout not found")
+    if item.lockout_type == LOCKOUT_IP and current_user.role.code != "super_admin":
+        raise HTTPException(status_code=403, detail="Permission denied")
+    was_active = lockout_is_active(item)
+    item.unlocked_at = now_utc()
+    item.unlocked_by_user_id = current_user.id
+    item.unlock_reason = payload.reason.strip()
+    write_audit_log(
+        db,
+        current_user.id,
+        "auth",
+        "login_lockout_unlocked",
+        "login_lockout",
+        str(item.id),
+        {
+            "lockout_type": item.lockout_type,
+            "reason": item.unlock_reason,
+            "reason_length": len(item.unlock_reason),
+            "was_active": was_active,
+        },
+        request_meta=extract_request_meta(request),
+    )
+    db.commit()
+    db.refresh(item)
+    return APIResponse(data=serialize_login_lockout(item))

@@ -14,6 +14,12 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     secret_key: str = "change-this-in-production"
     access_token_expire_minutes: int = Field(default=180, ge=1)
+    login_lockout_enabled: bool = True
+    login_lockout_account_ip_failures: int = Field(default=10, ge=1, le=1000)
+    login_lockout_ip_failures: int = Field(default=30, ge=1, le=5000)
+    login_lockout_window_hours: int = Field(default=24, ge=1, le=168)
+    login_lockout_duration_hours: int = Field(default=24, ge=1, le=168)
+    login_lockout_email_cooldown_hours: int = Field(default=24, ge=1, le=168)
     database_url: str = f"sqlite:///{(DATA_DIR / 'portal_test.db').as_posix()}"
     cors_origins: str = "http://localhost:3100,http://127.0.0.1:3100,http://localhost:5174,http://127.0.0.1:5174"
     storage_root: str = str(DATA_DIR / "files")

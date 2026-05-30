@@ -62,6 +62,7 @@
 - P3-E3 已新增本地 ClamAV `clamd` worker 试验：`file_scanning.py` 增加 TCP `clamd` provider；`scripts/run_file_scan_worker.py` 提供一次性 pending 文件扫描；admin 文件库支持重新扫描和 `super_admin` 手动放行；`scripts/smoke_file_clamav_worker_backend.sh` 使用 EICAR 验证 clean / infected / failed / manual_override。本阶段不部署服务器、不 push、不做常驻 worker 或队列。
 - P3 security hardening readiness 已准备受控 ECS 部署：新增 `docs/P3_SECURITY_HARDENING_READINESS.md`，并补齐 production compose 的 P3-C/P3-E3 运行时配置透传和 API 镜像内 one-shot worker 入口。本阶段仍不 merge main、不 push main、不声称服务器已部署。
 - P4-B1 已开展双平台账号认证策略与前端体验对齐：Portal 在保留 8–20 位和 3-of-4 规则的基础上新增常见弱密码、账号信息相似密码拒绝和前端提示；Achievement 保留强密码策略并补当前密码复用拒绝、profile 和登录过期提示。本阶段不做登录锁定/限流、邮件通知、文件安全、ClamAV、部署或 main merge。
+- P4-B2 已开展双平台登录失败锁定 / 限流 / 邮件告知对齐：Portal 新增 durable `LoginLockout`、account+IP 和 IP-global 双维度锁定、dev_outbox 登录保护邮件、管理员 reason 解锁和 smoke；Achievement 适配同一语义。本阶段不发送真实邮件、不部署服务器、不 push、不修改 SMS/SSO/文件安全/ClamAV。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
 

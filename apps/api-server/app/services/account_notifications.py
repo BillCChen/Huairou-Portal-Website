@@ -138,3 +138,31 @@ def send_password_changed_notification(db: Session, user: User) -> bool:
         "怀柔科学城门户网站\n"
     )
     return send_account_notification(db, user=user, event="password_changed", subject=subject, body=body)
+
+
+def send_login_lockout_notification(
+    db: Session,
+    user: User,
+    *,
+    ip_address: str | None,
+    locked_until,
+    lockout_type: str,
+) -> bool:
+    subject = "怀柔科学城门户网站：登录保护已触发"
+    body = (
+        f"{display_name(user)}，您好：\n\n"
+        "您的账号出现多次登录失败，系统已临时限制该来源的登录。\n"
+        "限制时间：24 小时。\n"
+        f"触发 IP：{ip_address or 'unknown'}\n"
+        f"限制到期时间：{locked_until}\n\n"
+        "如果这是本人操作，请稍后重试或联系管理员解锁。\n"
+        "如果不是本人操作，请尽快联系平台管理员。\n\n"
+        "怀柔科学城门户网站\n"
+    )
+    return send_account_notification(
+        db,
+        user=user,
+        event=f"login_lockout_{lockout_type}",
+        subject=subject,
+        body=body,
+    )
