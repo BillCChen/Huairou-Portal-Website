@@ -65,6 +65,7 @@
 - P4-B2 已开展双平台登录失败锁定 / 限流 / 邮件告知对齐：Portal 新增 durable `LoginLockout`、account+IP 和 IP-global 双维度锁定、dev_outbox 登录保护邮件、管理员 reason 解锁和 smoke；Achievement 适配同一语义。本阶段不发送真实邮件、不部署服务器、不 push、不修改 SMS/SSO/文件安全/ClamAV。
 - P4-C1 已开展双平台账号事件通知与 Email Provider 语义对齐：Portal 保持 P3-B 通知行为并新增 `disabled` provider 回归证据；Achievement 补齐注册提交、审核通过、审核拒绝、管理员创建用户和密码修改成功通知。本阶段只使用 `dev_outbox` / `disabled` 本地验证，不发送真实邮件、不启用 SMTP、不部署服务器、不 push。
 - P4-D 已开展双平台 IP 审计与日志查询对齐：Portal 新增 `TRUST_PROXY_HEADERS` 可信代理开关并回归 IP/User-Agent 审计；Achievement 补齐审计请求元数据、unauthorized 审计和后台按 IP/账号/action/module/result/时间筛选。本阶段不记录所有 public GET，不做 PV/UV、GeoIP、WAF、自动清理，不部署服务器、不 push。
+- P4-R 正在收束 P4-A/B1/B2/C1/D 本地安全对齐 readiness：新增 `docs/P4_SECURITY_ALIGNMENT_READINESS.md`，计划创建 RC tag `v1.0-portal-p4-security-alignment-rc1` 并 push 当前 P4 分支和 tag。本阶段不部署服务器、不 merge main、不 push main、不运行真实 SMTP UAT。
 - 当前无 Alembic 迁移体系。
 - 当前无真实性能、安全、功能测试报告。
 

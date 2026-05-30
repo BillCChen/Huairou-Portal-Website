@@ -152,3 +152,16 @@ Shared boundaries:
 - Public GET traffic is not written to the application audit table.
 - GeoIP, WAF, IP blacklist, anomaly detection, PV/UV analytics, and automatic retention cleanup remain out of scope.
 - The recommended audit retention stays 180 days; cleanup automation belongs to P4-G.
+
+## 11. P4-R Rollup Readiness
+
+P4-R creates the rollup readiness checkpoint for P4-A through P4-D before deployment.
+
+- Portal readiness is recorded in `docs/P4_SECURITY_ALIGNMENT_READINESS.md`.
+- Achievement readiness is recorded in the matching document in the Achievement repository.
+- The planned Portal RC tag is `v1.0-portal-p4-security-alignment-rc1`.
+- The planned Achievement RC tag is `v1.0-achievement-p4-security-alignment-rc1`.
+- This stage pushes only the P4 branches and RC tags.
+- This stage does not push `main`, merge `main`, deploy servers, send real email, or run real SMTP UAT.
+
+The next stage should be P4-Deploy with database backup, file data backup, server-local environment review, migration/schema compatibility checks, and dual-platform smoke verification.
