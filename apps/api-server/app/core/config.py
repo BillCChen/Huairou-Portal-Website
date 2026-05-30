@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     secret_key: str = "change-this-in-production"
     access_token_expire_minutes: int = Field(default=180, ge=1)
+    trust_proxy_headers: bool = True
     login_lockout_enabled: bool = True
     login_lockout_account_ip_failures: int = Field(default=10, ge=1, le=1000)
     login_lockout_ip_failures: int = Field(default=30, ge=1, le=5000)

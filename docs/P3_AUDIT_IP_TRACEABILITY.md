@@ -54,12 +54,16 @@ P3-D 不记录所有 public GET 页面访问，也不记录公开内容浏览日
 
 ## 4. IP Extraction
 
-请求来源提取顺序：
+请求来源提取受 `TRUST_PROXY_HEADERS` 控制，生产默认值为 `true`，用于可信 Nginx 反向代理边界。
+
+当 `TRUST_PROXY_HEADERS=true` 时，提取顺序为：
 
 1. `X-Forwarded-For` 的第一个非空 IP。
 2. `X-Real-IP`。
 3. `request.client.host`。
 4. 无法识别时使用 `unknown`。
+
+当 `TRUST_PROXY_HEADERS=false` 时，只读取 `request.client.host`，不会信任请求传入的 `X-Forwarded-For` 或 `X-Real-IP`。
 
 `X-Forwarded-For` 和 `X-Real-IP` 只应在可信 Nginx 反向代理部署边界内使用。若未来出现多层代理或公网直连容器，需要重新确认可信代理链。
 
@@ -101,6 +105,9 @@ PORTAL_BACKEND_PYTHON=python3.11 ./scripts/smoke_audit_ip_backend.sh
 
 覆盖内容：
 
+- trusted proxy enabled: `X-Forwarded-For` first IP is recorded.
+- trusted proxy enabled: `X-Real-IP` is used as fallback.
+- trusted proxy disabled: forwarded headers are ignored and direct client host is used.
 - login success trace
 - login failure trace
 - registration trace

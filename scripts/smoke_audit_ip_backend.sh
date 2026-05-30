@@ -131,6 +131,7 @@ log "starting API at ${BASE_URL}"
   exec env \
     DATABASE_URL="sqlite:///${DB_PATH}" \
     UPLOAD_DIR="${UPLOAD_DIR}" \
+    TRUST_PROXY_HEADERS="true" \
     EMAIL_PROVIDER="dev_outbox" \
     PASSWORD_RESET_DEV_OUTBOX_DIR="${OUTBOX_DIR}" \
     PUBLIC_FRONTEND_BASE_URL="http://127.0.0.1:3100" \
@@ -162,11 +163,35 @@ BASE_URL="${BASE_URL}" TRACE_IP="${TRACE_IP}" TRACE_UA="${TRACE_UA}" OUTBOX_DIR=
 import json
 import os
 import re
+import sys
 import time
 from pathlib import Path
+from types import SimpleNamespace
 from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
+
+sys.path.insert(0, "apps/api-server")
+from app.core.config import settings
+from app.services.request_context import get_client_ip
+
+
+class HeaderMap(dict):
+    def get(self, key, default=None):
+        return super().get(key.lower(), default)
+
+
+fake_request = SimpleNamespace(
+    headers=HeaderMap({"x-forwarded-for": f"{os.environ['TRACE_IP']}, 198.51.100.77", "x-real-ip": "198.51.100.88"}),
+    client=SimpleNamespace(host="127.0.0.1"),
+)
+settings.trust_proxy_headers = True
+assert get_client_ip(fake_request) == os.environ["TRACE_IP"]
+fake_request.headers = HeaderMap({"x-real-ip": "198.51.100.88"})
+assert get_client_ip(fake_request) == "198.51.100.88"
+settings.trust_proxy_headers = False
+assert get_client_ip(fake_request) == "127.0.0.1"
+settings.trust_proxy_headers = True
 
 base_url = os.environ["BASE_URL"]
 trace_ip = os.environ["TRACE_IP"]
@@ -344,6 +369,8 @@ for forbidden in [initial_password, new_password, reset_secret, "Bea" + "rer "]:
 
 print("token value printed: no")
 print("password value printed: no")
+print("trusted proxy true extraction: PASS")
+print("trusted proxy false fallback: PASS")
 print("login success trace: PASS")
 print("login failure trace: PASS")
 print("registration trace: PASS")

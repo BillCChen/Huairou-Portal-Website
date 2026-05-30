@@ -127,3 +127,28 @@ Achievement closes the local semantic gap:
 - Password-changed notification does not include a token or reset URL.
 
 Both platforms validate P4-C1 with `dev_outbox` / `disabled` only. Real SMTP delivery remains P4-C2.
+
+## 10. P4-D IP Audit And Log Query Alignment
+
+P4-D aligns application-level IP and User-Agent audit semantics for Portal and Achievement without turning either product into a traffic analytics system.
+
+Portal remains mostly regression-oriented:
+
+- It keeps the P3-D `LoginLog` / `AuditLog` metadata model for `ip_address`, `user_agent`, `path`, `method`, result, and failure reason.
+- It adds `TRUST_PROXY_HEADERS` so trusted Nginx reverse-proxy deployments can use `X-Forwarded-For` / `X-Real-IP`, while untrusted or direct deployments fall back to `request.client.host`.
+- Its audit smoke covers trusted and untrusted proxy-header behavior.
+- It keeps existing administrator Audit/Login tabs for IP, account, action/module, and success/failure filtering.
+
+Achievement closes the local query and unauthorized-audit gap:
+
+- It keeps its existing request-security helper and extends proxy handling to include `X-Real-IP` fallback only when trusted proxy headers are enabled.
+- `AuditLog` gains request path, method, result, and failure reason so protected-route unauthorized attempts can be queried consistently.
+- Administrator audit filtering now supports IP, username/account, action, module/resource type, result, and creation-time range.
+- The admin audit UI displays IP, shortened User-Agent, request method/path, result, and failure reason without adding a monitoring dashboard.
+
+Shared boundaries:
+
+- Full IP is recorded only in administrator-visible logs.
+- Public GET traffic is not written to the application audit table.
+- GeoIP, WAF, IP blacklist, anomaly detection, PV/UV analytics, and automatic retention cleanup remain out of scope.
+- The recommended audit retention stays 180 days; cleanup automation belongs to P4-G.

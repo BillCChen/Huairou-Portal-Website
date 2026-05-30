@@ -5,6 +5,8 @@ from dataclasses import dataclass
 
 from fastapi import Request
 
+from app.core.config import settings
+
 
 MAX_USER_AGENT_LENGTH = 512
 UNKNOWN_CLIENT_IP = "unknown"
@@ -40,13 +42,14 @@ def _first_forwarded_ip(value: str | None) -> str | None:
 
 
 def get_client_ip(request: Request) -> str:
-    forwarded_for = _first_forwarded_ip(request.headers.get("x-forwarded-for"))
-    if forwarded_for:
-        return forwarded_for
+    if settings.trust_proxy_headers:
+        forwarded_for = _first_forwarded_ip(request.headers.get("x-forwarded-for"))
+        if forwarded_for:
+            return forwarded_for
 
-    real_ip = request.headers.get("x-real-ip")
-    if real_ip and real_ip.strip():
-        return real_ip.strip()
+        real_ip = request.headers.get("x-real-ip")
+        if real_ip and real_ip.strip():
+            return real_ip.strip()
 
     if request.client and request.client.host:
         return request.client.host.strip() or UNKNOWN_CLIENT_IP
