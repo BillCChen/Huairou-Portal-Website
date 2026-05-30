@@ -849,7 +849,7 @@ def login_sms(payload: SmsLoginRequest, request: Request, db: Session = Depends(
 
 @router.post(f"{settings.api_prefix}/auth/register", response_model=APIResponse)
 def register_user(payload: RegisterRequest, db: Session = Depends(get_db)):
-    validate_password_policy(payload.password)
+    validate_password_policy(payload.password, username=payload.mobile, email=str(payload.email) if payload.email else None, mobile=payload.mobile)
     if db.scalar(select(User).where(User.mobile == payload.mobile)):
         raise HTTPException(status_code=400, detail="Mobile already registered")
     role = db.scalar(select(Role).where(Role.code == "registered_user"))
@@ -1434,7 +1434,7 @@ def admin_list_pending_users(_: User = Depends(require_admin), db: Session = Dep
 
 @router.post(f"{settings.api_prefix}/admin/users", response_model=APIResponse)
 def admin_create_user(payload: AdminUserCreateIn, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
-    validate_password_policy(payload.password)
+    validate_password_policy(payload.password, username=payload.username, email=str(payload.email) if payload.email else None, mobile=payload.mobile)
     role_code = payload.role_code.strip()
     if role_code not in CREATE_USER_ROLE_CODES:
         raise HTTPException(status_code=400, detail="Role is not allowed for institution user creation")

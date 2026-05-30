@@ -37,7 +37,7 @@ const statusFilter = ref("");
 const loading = ref(false);
 const createDialogVisible = ref(false);
 const creating = ref(false);
-const passwordPolicyHint = "密码需为 8–20 位，并至少包含大写字母、小写字母、数字、特殊字符中的 3 类。";
+const passwordPolicyHint = "密码需为 8–20 位，并至少包含大写字母、小写字母、数字、特殊字符中的 3 类；不能使用常见弱密码，不能与用户名、邮箱或手机号等账号信息明显相似。";
 const rejectReasonHint = "请填写审核未通过原因，不少于 20 字。该说明将发送给申请人。";
 
 const createForm = reactive<AdminUserCreatePayload>({

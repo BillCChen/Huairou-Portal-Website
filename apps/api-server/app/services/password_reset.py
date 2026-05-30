@@ -195,8 +195,8 @@ def confirm_password_reset(db: Session, *, token: str, new_password: str) -> dic
 
     assert user is not None
     try:
-        validate_password_policy(new_password)
         ensure_password_not_current(new_password, user.password_hash)
+        validate_password_policy(new_password, username=user.username, email=user.email, mobile=user.mobile)
     except HTTPException as error:
         reason = "same_current_password" if error.detail == PASSWORD_UNCHANGED_MESSAGE else "password_policy"
         write_auth_audit(db, action="password_reset_confirm_failed", user_id=user.id, object_id=str(item.id), detail={"reason": reason})

@@ -115,7 +115,7 @@ export type PortalUser = {
   role_name?: string | null;
 };
 
-export const passwordPolicyHint = "密码需为 8–20 位，并至少包含大写字母、小写字母、数字、特殊字符中的 3 类。";
+export const passwordPolicyHint = "密码需为 8–20 位，并至少包含大写字母、小写字母、数字、特殊字符中的 3 类；不能使用常见弱密码，不能与用户名、邮箱或手机号等账号信息明显相似。";
 
 export const isPasswordPolicyCompliant = (password: string) => {
   const classes = [

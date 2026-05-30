@@ -118,6 +118,7 @@ from app.db.models import PasswordResetToken, User
 from app.db.seed import seed_database
 from app.db.session import Base, SessionLocal, engine
 from app.schemas import AdminUserCreateIn, RegisterRequest
+from app.services.password_policy import PASSWORD_ACCOUNT_SIMILAR_MESSAGE, PASSWORD_COMMON_MESSAGE
 from app.services.password_reset import confirm_password_reset, create_password_reset_request
 
 
@@ -141,7 +142,7 @@ with SessionLocal() as db:
     assert partner is not None
 
     expect_http_error(
-        "weak registration password",
+        "basic weak registration password",
         lambda: register_user(
             RegisterRequest(
                 real_name="弱密码注册用户",
@@ -153,6 +154,38 @@ with SessionLocal() as db:
             ),
             db,
         ),
+    )
+
+    expect_http_error(
+        "common registration password",
+        lambda: register_user(
+            RegisterRequest(
+                real_name="常见弱密码注册用户",
+                organization="Password Policy Smoke",
+                mobile="18800000005",
+                email="policy-common@example.com",
+                expertise="成果转化",
+                password="Password123",
+            ),
+            db,
+        ),
+        PASSWORD_COMMON_MESSAGE,
+    )
+
+    expect_http_error(
+        "mobile-similar registration password",
+        lambda: register_user(
+            RegisterRequest(
+                real_name="手机号相似密码注册用户",
+                organization="Password Policy Smoke",
+                mobile="18800000006",
+                email="policy-mobile-similar@example.com",
+                expertise="成果转化",
+                password="Tail0006!",
+            ),
+            db,
+        ),
+        PASSWORD_ACCOUNT_SIMILAR_MESSAGE,
     )
 
     strong_registration = register_user(
@@ -184,6 +217,44 @@ with SessionLocal() as db:
             admin,
             db,
         ),
+    )
+
+    expect_http_error(
+        "username-similar admin-created user password",
+        lambda: admin_create_user(
+            AdminUserCreateIn(
+                username="similar_user",
+                email="policy-admin-username-similar@example.com",
+                mobile="18800000005",
+                real_name="用户名相似密码后台用户",
+                organization="Password Policy Smoke",
+                expertise="成果转化",
+                password="Similar_user1!",
+                role_code="institute_editor",
+            ),
+            admin,
+            db,
+        ),
+        PASSWORD_ACCOUNT_SIMILAR_MESSAGE,
+    )
+
+    expect_http_error(
+        "email-local-similar admin-created user password",
+        lambda: admin_create_user(
+            AdminUserCreateIn(
+                username="policy_email_user",
+                email="localpart@example.com",
+                mobile="18800000006",
+                real_name="邮箱相似密码后台用户",
+                organization="Password Policy Smoke",
+                expertise="成果转化",
+                password="Localpart1!",
+                role_code="institute_editor",
+            ),
+            admin,
+            db,
+        ),
+        PASSWORD_ACCOUNT_SIMILAR_MESSAGE,
     )
 
     created = admin_create_user(
