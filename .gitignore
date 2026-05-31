@@ -20,6 +20,7 @@ uploads/
 
 # Generated local outputs
 outputs/
+performance/reports/runtime/
 
 # Local databases
 *.db
