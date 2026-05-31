@@ -81,11 +81,11 @@ echo "== PostgreSQL connection count, safe best effort =="
 cd /opt/huairou/portal/repo/deploy/docker
 printf "Portal postgres active connections: "
 sudo -u deploy docker compose -p portal-prod --env-file .env.production -f docker-compose.prod.yml exec -T postgres \
-  sh -lc 'psql -U portal -d portal -Atc "select count(*) from pg_stat_activity;"' 2>/dev/null || echo "Portal postgres count unavailable without secret"
+  sh -lc 'psql -U portal -d portal -Atc "select count(*) from pg_stat_activity;"' </dev/null 2>/dev/null || echo "Portal postgres count unavailable without secret"
 cd /opt/huairou/achievement/repo
 printf "Achievement postgres active connections: "
 sudo -u deploy docker compose -p achievement-prod --env-file deploy/docker/.env.production -f deploy/docker/compose.production.yml exec -T postgres \
-  sh -lc 'psql -U "${POSTGRES_USER:-achievement}" -d "${POSTGRES_DB:-achievement}" -Atc "select count(*) from pg_stat_activity;"' 2>/dev/null || echo "Achievement postgres count unavailable without secret"
+  sh -lc 'psql -U "${POSTGRES_USER:-achievement}" -d "${POSTGRES_DB:-achievement}" -Atc "select count(*) from pg_stat_activity;"' </dev/null 2>/dev/null || echo "Achievement postgres count unavailable without secret"
 
 echo
 echo "== Nginx recent errors =="
