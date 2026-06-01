@@ -2,6 +2,34 @@
 # Copy and adapt this file to /etc/nginx/sites-available/portal-prod.conf.
 # This template is not automatically loaded by Nginx.
 
+proxy_cache_path /var/cache/nginx/huairou_portal_home
+    levels=1:2
+    keys_zone=huairou_portal_home_cache:10m
+    max_size=100m
+    inactive=10m
+    use_temp_path=off;
+
+map $request_method $huairou_cache_skip_method {
+    default 1;
+    GET 0;
+    HEAD 0;
+}
+
+map $args $huairou_cache_skip_args {
+    default 1;
+    "" 0;
+}
+
+map $http_authorization $huairou_cache_skip_auth {
+    default 1;
+    "" 0;
+}
+
+map $http_cookie $huairou_cache_skip_cookie {
+    default 1;
+    "" 0;
+}
+
 upstream portal_api {
     server 127.0.0.1:18100;
     keepalive 16;
@@ -31,6 +59,34 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/huairou.tech/privkey.pem;
 
     client_max_body_size 50m;
+
+    # Huairou Portal public home microcache.
+    location = / {
+        proxy_cache huairou_portal_home_cache;
+        proxy_cache_methods GET HEAD;
+        proxy_cache_valid 200 60s;
+        proxy_cache_lock on;
+        proxy_cache_lock_timeout 10s;
+        proxy_cache_lock_age 10s;
+        proxy_cache_background_update on;
+        proxy_cache_use_stale updating;
+        proxy_cache_bypass $huairou_cache_skip_method $huairou_cache_skip_args $huairou_cache_skip_auth $huairou_cache_skip_cookie;
+        proxy_no_cache $huairou_cache_skip_method $huairou_cache_skip_args $huairou_cache_skip_auth $huairou_cache_skip_cookie $upstream_http_set_cookie;
+        add_header X-Cache-Status $upstream_cache_status always;
+        gzip on;
+        gzip_min_length 1024;
+        gzip_vary on;
+
+        proxy_pass http://portal_web;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
 
     location /api/ {
         proxy_pass http://portal_api;

@@ -111,6 +111,23 @@
 | `https://portal-admin.huairou.tech/` | `127.0.0.1:15174` | Portal 后台 |
 | `https://portal-admin.huairou.tech/api/v1` | `127.0.0.1:18100` | Portal API |
 
+Portal 前台首页可启用 Nginx exact-root microcache：
+
+- 只缓存 `https://huairou.tech/` 和 `https://www.huairou.tech/` 的无 query、无 cookie、无 Authorization 的 `GET/HEAD /`。
+- TTL 为 60 秒，缓存目录为 `/var/cache/nginx/huairou_portal_home`，zone 为 `huairou_portal_home_cache`。
+- 开启 `proxy_cache_lock` 和 `proxy_cache_use_stale updating`，避免 TTL 到期时 50 VU 同时回源压垮 Portal web/SSR。
+- exact-root 响应开启 gzip，减少缓存命中后首页 HTML 的传输体积；该设置不应用于 API、后台或 Achievement。
+- `/?registered=pending` 等带 query 的注册提示页面不缓存。
+- `/api/`、`portal-admin.huairou.tech`、`cg.huairou.tech` 不进入该 cache zone。
+- 响应头 `X-Cache-Status` 用于只读验证 `MISS/HIT/BYPASS`。
+
+如需临时回退首页 microcache：
+
+    sudo cp /etc/nginx/sites-available/portal-prod.conf.q2b2.bak /etc/nginx/sites-available/portal-prod.conf
+    sudo rm -f /etc/nginx/conf.d/huairou_portal_home_cache.conf
+    sudo nginx -t
+    sudo systemctl reload nginx
+
 Portal admin 容器内部只提供 HTTP 静态站点：
 
 - admin 容器监听 `80`，由 Compose 绑定到宿主机 `127.0.0.1:15174`。
