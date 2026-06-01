@@ -27,6 +27,7 @@ Q2-B1 的 Nginx timing 诊断显示：
 - `proxy_cache_valid 200 60s`，只缓存 200 响应 60 秒。
 - `proxy_cache_lock` 和 `proxy_cache_use_stale updating` 用于避免 TTL 到期时多个 50 VU 请求同时回源。
 - exact-root 响应启用 gzip，用于降低缓存命中后的首页 HTML 传输体积。
+- k6 HTML 请求显式发送 `Accept-Encoding: gzip, deflate, br`，避免诊断脚本偏离真实浏览器压缩行为。
 - 只允许 `GET/HEAD`。
 - 带 query、cookie、Authorization 的请求 bypass/no-cache。
 - 上游返回 `Set-Cookie` 时不写入缓存。

@@ -76,7 +76,8 @@ Nginx 备份：
 |---|---|---|
 | Initial exact-root cache | 30s microcache | Portal HTML p95 仍为秒级 |
 | Cache lock and stale update | TTL 调整为 60s，启用 `proxy_cache_lock` 和 `proxy_cache_use_stale updating` | Portal HTML p95 仍为秒级 |
-| Exact-root gzip | exact-root 响应启用 gzip，降低 HTML 传输体积 | Portal HTML p95 仍未达标 |
+| Exact-root gzip | exact-root 响应启用 gzip，降低 HTML 传输体积 | 默认 k6 HTML headers 未稳定请求 gzip，Portal HTML p95 仍未达标 |
+| Browser-like k6 HTML headers | k6 HTML 请求显式发送 `Accept-Encoding: gzip, deflate, br` | Portal HTML p95 降至 26ms，50 VU thresholds 全部通过 |
 
 本轮没有扩大缓存范围，也没有改应用容器。
 
@@ -94,16 +95,17 @@ Nginx 备份：
 |---|---:|
 | checks | 100.00% |
 | http_req_failed | 0.00% |
-| Portal home HTML p95 | 1.99s |
-| Portal home HTML p99 | 3.73s |
-| Portal HTML max | 28.24s |
-| Overall HTML p95 | 1.38s |
-| Overall HTTP p99 | 1.57s |
-| Portal public API group p95 | 310.69ms |
-| Achievement HTML p95 | 22.42ms |
-| Achievement API group p95 | 73.82ms |
+| Portal home HTML p95 | 26.0ms |
+| Portal home HTML p99 | 57.21ms |
+| Portal HTML max | 429.43ms |
+| Overall HTML p95 | 22.84ms |
+| Overall HTTP p99 | 51.63ms |
+| Portal public API group p95 | 40.34ms |
+| Achievement HTML p95 | 16.22ms |
+| Achievement API group p95 | 20.81ms |
+| Data received | 213 MB |
 
-结论：本轮没有达到 `portal_home_html p95 < 1000ms` 的目标。
+结论：在 exact-root microcache、gzip 和 browser-like k6 HTML headers 同时生效后，本轮达到 `portal_home_html p95 < 1000ms` 的目标。
 
 ## 8. Nginx Timing Evidence
 
@@ -111,13 +113,13 @@ Nginx 备份：
 
 | Target | Count | Status | request p95 | request p99 | request max | upstream p95 |
 |---|---:|---|---:|---:|---:|---:|
-| `huairou.tech GET /` | 4954 | 200 | 0.0ms | 0.0ms | 1.555s | 104.0ms |
-| `huairou.tech GET /api/v1/public/home` | 4970 | 200 | 24.0ms | 37.0ms | 145.0ms | 24.0ms |
-| `portal-admin.huairou.tech GET /` | 1219 | 200 | 1.0ms | 1.0ms | 2.0ms | 4.0ms |
-| `cg.huairou.tech GET /` | 4850 | 200 | 1.0ms | 1.0ms | 3.0ms | 4.0ms |
-| `cg.huairou.tech GET /api/v1/health` | 4850 | 200 | 2.0ms | 3.0ms | 23.0ms | 4.0ms |
+| `huairou.tech GET /` | 4709 | 200 | 0.0ms | 0.0ms | 134.0ms | 36.0ms |
+| `huairou.tech GET /api/v1/public/home` | 4718 | 200 | 31.0ms | 60.0ms | 119.0ms | 32.0ms |
+| `portal-admin.huairou.tech GET /` | 1176 | 200 | 1.0ms | 2.0ms | 4.0ms | 4.0ms |
+| `cg.huairou.tech GET /` | 4786 | 200 | 1.0ms | 2.0ms | 9.0ms | 4.0ms |
+| `cg.huairou.tech GET /api/v1/health` | 4785 | 200 | 2.0ms | 3.0ms | 15.0ms | 4.0ms |
 
-这说明 exact-root cache 已经把服务端 request/upstream 高尾压低；k6 仍看到秒级 HTML tail，下一轮需要优先排查客户端链路、TLS/连接复用、响应体传输、k6 timing 采样、公网出口带宽或首页 HTML/payload 体积，而不是继续扩大 Nginx 缓存边界。
+这说明 exact-root cache 已经把服务端 request/upstream 高尾压低；修正 HTML 请求压缩后，k6 端 Portal 首页 HTML p95 也回到毫秒级。
 
 ## 9. Runtime and Health
 
@@ -134,7 +136,7 @@ Nginx 备份：
 ## 10. Known Warnings
 
 - 本地 `curl` 在部分 HTTPS 请求上出现 LibreSSL `SSL_ERROR_SYSCALL`，cache check 脚本已使用 Python urllib fallback 完成验证。
-- k6 50 VU 的 Portal HTML threshold 仍失败；这不是业务可用性失败，检查和 HTTP 错误率均为 0。
+- 未显式发送 `Accept-Encoding` 的 k6 HTML 请求不会稳定获得 gzip，曾导致 50 VU 中 Portal HTML p95 仍为秒级；修正脚本后已通过。
 - Nginx `X-Cache-Status: STALE` 在后置只读快照中出现，符合 `proxy_cache_use_stale updating` 的设计，但也提示后续若继续保留该配置，应观察真实用户首页更新延迟。
 
 ## 11. Security Boundary
@@ -149,12 +151,12 @@ Nginx 备份：
 
 ## 12. Next Recommended Work
 
-Q2-B2 的 low-risk Nginx exact-root cache 路线已经验证到边界：服务器侧已经足够快，但 k6 端 Portal HTML tail 仍不达标。
+Q2-B2 的 low-risk Nginx exact-root cache 路线已经通过 50 VU 诊断验证。下一步可进入正式 100 VU 前的受控确认，或在 Q2-B3 中继续沉淀更细的 timing 拆分。
 
-下一轮建议不要扩大缓存范围，优先做 Q2-B3：
+如果继续做 Q2-B3，建议重点补充：
 
 - 在 k6 中拆分 `blocked/connecting/tls_waiting/sending/waiting/receiving`。
-- 验证 k6 请求是否实际带 `Accept-Encoding: gzip`，以及收到的 body/transfer size。
+- 记录 HTML 响应 `Content-Encoding` 和 transfer size。
 - 对比同机、不同网络出口和服务器本机 curl/hey 的 `GET /` latency。
 - 评估首页 HTML 和 Nuxt payload 体积是否需要应用层瘦身。
-- 如果确认公网传输是主因，再讨论静态化、CDN 或更细的 HTML/payload 策略。
+- 正式 100 VU 前继续保持 exact-root cache boundary，不扩大到 `location /`。
