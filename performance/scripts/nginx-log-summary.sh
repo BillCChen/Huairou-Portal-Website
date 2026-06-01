@@ -11,7 +11,8 @@ TAIL_LINES="${TAIL_LINES:-5000}"
 redact() {
   sed -E \
     -e 's/([?&]([[:alnum:]_-]*token|code|passwd)=)[^&[:space:]]+/\1***REDACTED***/g' \
-    -e 's/(Authorization:[[:space:]]+)[A-Za-z]+[[:space:]]+[A-Za-z0-9._-]+/\1***REDACTED***/g'
+    -e 's/(Authorization:[[:space:]]+)[A-Za-z]+[[:space:]]+[A-Za-z0-9._-]+/\1***REDACTED***/g' \
+    -e 's/([0-9]{1,3}\.){3}[0-9]{1,3}/***IP***/g'
 }
 
 summary_script='

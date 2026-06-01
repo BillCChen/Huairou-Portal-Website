@@ -20,7 +20,8 @@ redact() {
   sed -E \
     -e 's/(PASSWORD|SECRET|TOKEN|KEY|password|secret|token|key)=([^[:space:]]+)/\1=***REDACTED***/g' \
     -e 's/([[:alnum:]_-]*token)([\"=: ]+)[^\", ]+/\1\2***REDACTED***/g' \
-    -e 's/(Authorization:[[:space:]]+)[A-Za-z]+[[:space:]]+[A-Za-z0-9._-]+/\1***REDACTED***/g'
+    -e 's/(Authorization:[[:space:]]+)[A-Za-z]+[[:space:]]+[A-Za-z0-9._-]+/\1***REDACTED***/g' \
+    -e 's/([0-9]{1,3}\.){3}[0-9]{1,3}/***IP***/g'
 }
 
 ssh -i "${SSH_KEY}" -o BatchMode=yes -o StrictHostKeyChecking=accept-new "${SSH_USER}@${SERVER_HOST}" 'bash -s' <<'REMOTE' | redact | tee "${SNAPSHOT_PATH}"
@@ -30,7 +31,8 @@ redact_remote() {
   sed -E \
     -e 's/(PASSWORD|SECRET|TOKEN|KEY|password|secret|token|key)=([^[:space:]]+)/\1=***REDACTED***/g' \
     -e 's/([[:alnum:]_-]*token)([\"=: ]+)[^\", ]+/\1\2***REDACTED***/g' \
-    -e 's/([?&]([[:alnum:]_-]*token|code|passwd)=)[^&[:space:]]+/\1***REDACTED***/g'
+    -e 's/([?&]([[:alnum:]_-]*token|code|passwd)=)[^&[:space:]]+/\1***REDACTED***/g' \
+    -e 's/([0-9]{1,3}\.){3}[0-9]{1,3}/***IP***/g'
 }
 
 echo "== basic =="
