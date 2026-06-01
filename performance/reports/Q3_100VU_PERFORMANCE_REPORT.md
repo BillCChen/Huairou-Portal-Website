@@ -164,7 +164,9 @@ Nginx error log 中仍可见外部 TLS handshake `bad key share` 记录，这类
 
 ## 6. Decision
 
-Q3 结论：不通过 100 VU 性能门。
+Q3 结论：100 VU 稳定性 / 可用性通过，但严格 100 VU 性能门未完全通过。
+
+本报告不应被解读为“100 并发全部性能指标通过”。更准确的阶段性结论是：100 VU 下系统可用性和稳定性通过，但 Portal 首页 HTML 的严格 p95 `< 1000ms` 延迟门槛未完全通过。甲方沟通时建议表述为“100 并发稳定性通过，首页 HTML 长尾仍有优化空间”。
 
 通过项：
 
@@ -185,7 +187,25 @@ Q3 结论：不通过 100 VU 性能门。
 - Portal public home API 在 100 VU 中也出现 p95 981.48 ms、p99 2.08 s 的明显长尾，虽未单独触发 group 阈值失败，但应纳入下一轮定位。
 - k6 warning 中出现少量 HTTP/2 GOAWAY 和 timeout，后续需要区分客户端连接复用、Nginx HTTP/2 行为、公网链路、Portal home HTML payload/压缩与 Nuxt SSR/cache 回源边界。
 
-## 7. Limitations
+## 7. Client-facing Wording
+
+对外建议表述：
+
+> 系统在 100 个并发虚拟用户的低扰动只读访问场景下保持稳定，未观察到 Nginx 5xx 错误，请求失败率为 0.00%，测试结束后门户网站、门户后台和成果转化平台均保持健康。当前主要待优化项为门户首页 HTML 在严格 p95 `< 1s` 门槛下略有超标，后续可继续针对首页长尾延迟进行优化。
+
+不建议表述：
+
+- 100 并发完全无压力。
+- 100 VU 全部指标通过。
+- 系统已经完成性能验收。
+- 可承诺 100 QPS。
+
+Q3-R 对外摘要和内部解释见：
+
+- `performance/reports/Q3R_CLIENT_FACING_SUMMARY.md`
+- `performance/reports/Q3R_PERFORMANCE_CONCLUSION.md`
+
+## 8. Limitations
 
 - 本轮从本地 Mac 通过公网访问 ECS，结果包含本地网络、公网链路、TLS/HTTP2 连接行为和客户端观测成本。
 - 本轮未触发真实邮件、注册、审核、创建用户、登录失败锁定、文件上传、ClamAV worker 或 EICAR。
@@ -193,7 +213,7 @@ Q3 结论：不通过 100 VU 性能门。
 - 本轮不包含数据库写入型事务、后台管理复杂查询或文件下载压力。
 - 本轮未调整服务器配置，也未部署或修改业务代码。
 
-## 8. Recommended Follow-up
+## 9. Recommended Follow-up
 
 建议进入 Q3-Fix / Q3-Diagnose，而不是进入更高并发：
 
@@ -201,7 +221,7 @@ Q3 结论：不通过 100 VU 性能门。
 2. 对 Portal public home API 单端点增加小规模定向 timing 诊断，因为它在 100 VU 中 p95 接近 1 秒。
 3. 保持 50 VU 作为当前通过门槛；100 VU 需要修复后再跑一次正式验证。
 
-## 9. Runtime Evidence
+## 10. Runtime Evidence
 
 Runtime evidence is intentionally ignored by Git and remains under `performance/reports/runtime/`.
 
