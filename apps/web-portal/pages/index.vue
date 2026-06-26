@@ -3,93 +3,18 @@ const route = useRoute();
 const router = useRouter();
 const registrationNoticeVisible = ref(false);
 
-const NEWS_CATEGORY_SCOPES = [
-  { key: "internal", label: "院内新闻", fallbackSlug: "院内新闻", aliases: ["院内新闻", "institution-news", "institution", "internal-news"] },
-  { key: "industry", label: "行业资讯", fallbackSlug: "行业资讯", aliases: ["行业资讯", "industry-news", "industry", "trade-news"] },
-  { key: "notice", label: "通知公告", fallbackSlug: "通知公告", aliases: ["通知公告", "notice", "announcement", "notice-announcement"] },
-  { key: "media", label: "媒体聚焦", fallbackSlug: "媒体聚焦", aliases: ["媒体聚焦", "media-focus", "media", "media-news"] },
-] as const;
-
-const page = computed(() => Math.max(1, Number(route.query.page || 1)));
 const keyword = computed(() => String(route.query.keyword || ""));
-const currentCategory = computed(() => String(route.query.category_slug || ""));
-
-const normalizeCategoryText = (value: any) => {
-  return String(value || "").trim().toLowerCase();
-};
-
-const resolveCategoryKey = (raw: any) => {
-  const target = normalizeCategoryText(raw);
-  if (!target) {
-    return "";
-  }
-
-  const matched = NEWS_CATEGORY_SCOPES.find((scope) =>
-    [scope.label, scope.fallbackSlug, scope.key, ...scope.aliases].some((alias) => normalizeCategoryText(alias) === target)
-  );
-
-  return matched?.key || "";
-};
-
-const categoryTabs = computed(() => {
-  const mapped = new Map<string, string>();
-  (categories.value || []).forEach((item: any) => {
-    const key = resolveCategoryKey(item?.slug || item?.name || item?.title || item?.label || item?.category);
-    if (!key) {
-      return;
-    }
-    if (mapped.has(key)) {
-      return;
-    }
-    mapped.set(key, String(item?.slug || item?.name || item?.title || ""));
-  });
-
-  return [
-    { label: "全部", slug: "", key: "all" },
-    ...NEWS_CATEGORY_SCOPES.map((scope) => ({
-      label: scope.label,
-      slug: mapped.get(scope.key) || scope.fallbackSlug,
-      key: scope.key,
-    })),
-  ];
-});
-
-const activeCategoryKey = computed(() => {
-  if (!currentCategory.value) {
-    return "all";
-  }
-  return resolveCategoryKey(currentCategory.value) || "custom";
-});
-
-const categoryParam = computed(() => {
-  if (!currentCategory.value) {
-    return "";
-  }
-  if (activeCategoryKey.value === "custom") {
-    return currentCategory.value;
-  }
-  const tab = categoryTabs.value.find((item) => item.key === activeCategoryKey.value);
-  return tab?.slug || currentCategory.value;
-});
 
 const { data: home } = await useAsyncData("home", () => usePortalApi<any>("/public/home"));
-const { data: categories } = await useAsyncData("home-news-categories", () =>
-  usePortalApi<any[]>("/public/categories", {
-    query: { type: "news" },
-  })
-);
-const { data: newsData, pending, error } = await useAsyncData(
-  () => `home-news-${page.value}-${categoryParam.value}-${keyword.value}`,
+const { data: caseData, pending, error } = await useAsyncData(
+  "home-cases",
   () =>
-    usePortalApi<any>("/public/news", {
+    usePortalApi<any>("/public/cases", {
       query: {
-        page: page.value,
-        page_size: 6,
-        category: categoryParam.value || undefined,
-        keyword: keyword.value || undefined,
+        page: 1,
+        page_size: 9,
       },
-    }),
-  { watch: [page, categoryParam, keyword] }
+    })
 );
 
 
@@ -106,16 +31,13 @@ const heroSubTitle = computed(
 );
 const heroTabs = computed(() => "请输入需求、技术、企业或服务关键词");
 
-const newsItems = computed(() => newsData.value?.items || []);
+const caseItems = computed(() => caseData.value?.items || []);
 const statItems = computed(() => Array.isArray(home.value?.site_settings?.home_stats) ? home.value.site_settings.home_stats : []);
 const aboutPage = computed(() => home.value?.about || {});
-const homeCases = computed(() => home.value?.cases || []);
-const carouselItems = computed(() => newsItems.value.slice(0, 5));
+const carouselItems = computed(() => caseItems.value.slice(0, 6));
 const activeCarouselIndex = ref(0);
-const featured = computed(() => carouselItems.value[activeCarouselIndex.value] || newsItems.value[0] || null);
-const newsList = computed(() => {
-  return carouselItems.value;
-});
+const featured = computed(() => carouselItems.value[activeCarouselIndex.value] || caseItems.value[0] || null);
+const caseList = computed(() => carouselItems.value);
 let carouselTimer: ReturnType<typeof setInterval> | null = null;
 
 const stopCarousel = () => {
@@ -187,86 +109,28 @@ watch(
   { immediate: true }
 );
 
-const totalPages = computed(() => Number(newsData.value?.total_pages || 0));
-
-const buildQuery = async (next: Record<string, string | number | undefined>) => {
-  const query = { ...route.query, ...next } as Record<string, string | number | undefined>;
-
-  Object.keys(query).forEach((key) => {
-    const val = query[key];
-    if (val == null || val === "") {
-      delete query[key];
-    }
-  });
-
-  await router.push({ query });
-};
-
 const submitSearch = async () => {
-  await buildQuery({ page: 1, keyword: searchKeyword.value || undefined, category_slug: categoryParam.value || undefined });
+  await router.push({ path: "/cases", query: searchKeyword.value ? { keyword: searchKeyword.value } : {} });
 };
 
-const selectCategory = async (slug: string) => {
-  await buildQuery({ page: 1, category_slug: slug || undefined, keyword: keyword.value || undefined });
-};
+const CASE_MEDIA_SLUGS = new Set([
+  "ion-thinning-instrument",
+  "spr-imaging-system",
+  "five-modal-imaging-device",
+  "glycan-sequencer",
+  "ophthalmic-surgery-robot",
+  "tcm-western-ai-health",
+  "tcm-smart-tea-machine",
+  "home-moxibustion-device",
+]);
 
-const isCategoryActive = (tab: { slug: string; key: string }) => {
-  if (activeCategoryKey.value === "all") {
-    return tab.key === "all";
+const resolveImage = (item: any) => {
+  const direct = item?.cover || item?.image || item?.image_url || item?.thumbnail || item?.cover_url;
+  if (direct) {
+    return direct;
   }
-  if (activeCategoryKey.value === "custom") {
-    return normalizeCategoryText(tab.slug) === normalizeCategoryText(currentCategory.value);
-  }
-  return tab.key === activeCategoryKey.value;
+  return item?.slug && CASE_MEDIA_SLUGS.has(item.slug) ? `/case-media/${item.slug}.jpg` : "";
 };
-
-const resolveNewsCategoryLabel = (item: any) => {
-  const key = resolveCategoryKey(
-    item?.category
-      || item?.category_slug
-      || item?.category_name
-      || item?.tag
-      || item?.source
-      || item?.type
-      || item?.labels?.[0]
-  );
-  if (key === "internal") {
-    return "院内新闻";
-  }
-  if (key === "industry") {
-    return "行业资讯";
-  }
-  if (key === "notice") {
-    return "通知公告";
-  }
-  if (key === "media") {
-    return "媒体聚焦";
-  }
-  return item?.source || item?.category_name || item?.category || "新闻";
-};
-
-const changePage = async (nextPage: number) => {
-  if (nextPage < 1 || (totalPages.value && nextPage > totalPages.value)) {
-    return;
-  }
-  await buildQuery({ page: nextPage });
-};
-
-const formatNewsDate = (value?: string) => {
-  if (!value) {
-    return "";
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value.slice(0, 10);
-  }
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y} 年 ${m} 月 ${d} 日`;
-};
-
-const resolveImage = (item: any) => item?.cover || item?.image || item?.image_url || item?.thumbnail || item?.cover_url || "";
 
 const resolveThumbClass = (index: number) => {
   const styles = ["thumb--room", "thumb--building", "thumb--stage", "thumb--screen"];
@@ -360,21 +224,10 @@ useSeoMeta({
       <div class="news-inner container">
         <div class="news-headline">
           <h2 class="news-title">
-            <small>NEWS</small>
-            <strong>新闻中心</strong>
+            <small>CASES</small>
+            <strong>成功案例</strong>
           </h2>
-          <nav class="news-tabs" aria-label="新闻分类">
-            <button
-              v-for="tab in categoryTabs"
-              :key="tab.slug || 'all'"
-              class="news-tab"
-              :class="{ active: isCategoryActive(tab) }"
-              type="button"
-              @click="selectCategory(tab.slug)"
-            >
-              {{ tab.label }}
-            </button>
-          </nav>
+          <p class="news-subhead">研究合作成果案例，欢迎前往成果转化平台深入交流</p>
         </div>
 
         <div class="news-grid">
@@ -383,7 +236,7 @@ useSeoMeta({
               v-if="carouselItems.length > 1"
               class="featured-arrow featured-arrow--prev"
               type="button"
-              aria-label="上一条新闻"
+              aria-label="上一项案例"
               @click="prevCarouselItem"
             >
               ‹
@@ -392,7 +245,7 @@ useSeoMeta({
               v-if="carouselItems.length > 1"
               class="featured-arrow featured-arrow--next"
               type="button"
-              aria-label="下一条新闻"
+              aria-label="下一项案例"
               @click="nextCarouselItem"
             >
               ›
@@ -403,30 +256,30 @@ useSeoMeta({
                 <div :key="featured.slug || featured.id" class="featured-slide">
                   <div class="featured-cover" v-if="resolveImage(featured)">
                     <img :src="resolveImage(featured)" :alt="featured.title" loading="lazy" />
-                    <span class="featured-chip">头条</span>
+                    <span class="featured-chip">成果案例</span>
                   </div>
                   <div v-else class="featured-card__fallback" :class="resolveThumbClass(activeCarouselIndex)" />
 
                   <div class="featured-caption-wrap">
                     <div class="featured-title">
-                      <h3 class="featured-subtitle">{{ resolveNewsCategoryLabel(featured) }}</h3>
+                      <h3 class="featured-subtitle">{{ resolveCaseCategoryLabel(featured) }}</h3>
                       <h2 class="featured-heading">{{ featured.title }}</h2>
                     </div>
-                    <time class="featured-date">{{ formatNewsDate(featured.publish_at || featured.created_at) }}</time>
+                    <p v-if="featured.partner_name" class="featured-date">{{ featured.partner_name }}</p>
                     <p class="featured-summary">{{ featured.summary || "暂无摘要" }}</p>
-                    <NuxtLink :to="`/news/${featured.slug}`" class="featured-more">查看详情</NuxtLink>
+                    <NuxtLink :to="`/cases/${featured.slug}`" class="featured-more">查看详情</NuxtLink>
                   </div>
                 </div>
               </Transition>
 
-              <div v-if="carouselItems.length > 1" class="featured-dots" aria-label="新闻轮播分页">
+              <div v-if="carouselItems.length > 1" class="featured-dots" aria-label="案例轮播分页">
                 <button
                   v-for="(item, index) in carouselItems"
                   :key="item.slug || item.id"
                   class="featured-dot"
                   :class="{ active: index === activeCarouselIndex }"
                   type="button"
-                  :aria-label="`切换到第 ${index + 1} 条新闻`"
+                  :aria-label="`切换到第 ${index + 1} 项案例`"
                   @click="showCarouselItem(index)"
                 />
               </div>
@@ -435,9 +288,9 @@ useSeoMeta({
             <template v-else>
               <div class="featured-card__fallback" />
               <div class="featured-caption-wrap">
-                <h3 class="featured-subtitle">研究院资讯</h3>
-                <h2 class="featured-heading">暂无新闻</h2>
-                <p class="featured-summary">当前未查询到符合条件的新闻，请尝试切换分类或重新搜索。</p>
+                <h3 class="featured-subtitle">研究合作成果</h3>
+                <h2 class="featured-heading">暂无成功案例</h2>
+                <p class="featured-summary">后台发布案例后将自动展示在首页。</p>
               </div>
             </template>
           </article>
@@ -445,11 +298,11 @@ useSeoMeta({
           <div class="news-list-wrap">
             <div v-if="pending" class="news-state">正在加载中…</div>
             <div v-else-if="error" class="news-state news-state--error">
-              {{ getPortalErrorMessage(error, "新闻加载失败") }}
+              {{ getPortalErrorMessage(error, "案例加载失败") }}
             </div>
             <template v-else>
               <article
-                v-for="(item, index) in newsList"
+                v-for="(item, index) in caseList"
                 :key="item.slug"
                 class="news-item"
                 :class="{ active: index === activeCarouselIndex }"
@@ -458,29 +311,23 @@ useSeoMeta({
                 <div
                   class="news-item-thumb"
                   :class="resolveThumbClass(index)"
-                  :style="resolveImage(item) ? { backgroundImage: `url(${resolveImage(item)})` } : undefined"
+                  :style="resolveImage(item) ? { backgroundImage: `url(${resolveImage(item)})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundColor: '#eef3fa' } : undefined"
                 ></div>
                 <div class="news-item-content">
-                  <p class="news-item-tag">{{ resolveNewsCategoryLabel(item) }}</p>
+                  <p class="news-item-tag">{{ resolveCaseCategoryLabel(item) }}</p>
                   <h3>
-                    <NuxtLink :to="`/news/${item.slug}`">{{ item.title }}</NuxtLink>
+                    <NuxtLink :to="`/cases/${item.slug}`">{{ item.title }}</NuxtLink>
                   </h3>
                   <p>{{ item.summary || "暂无摘要" }}</p>
                 </div>
               </article>
-              <article v-if="!newsList.length" class="news-empty">暂无更多列表新闻</article>
+              <article v-if="!caseList.length" class="news-empty">暂无更多案例</article>
             </template>
           </div>
         </div>
 
         <div class="news-more-wrap">
-          <NuxtLink class="news-more" to="/news">查看更多</NuxtLink>
-        </div>
-
-        <div v-if="totalPages > 1" class="news-pagination">
-          <button class="news-pager" :disabled="page <= 1" type="button" @click="changePage(page - 1)">上一页</button>
-          <span>第 {{ page }} / {{ totalPages }} 页</span>
-          <button class="news-pager" :disabled="page >= totalPages" type="button" @click="changePage(page + 1)">下一页</button>
+          <NuxtLink class="news-more" to="/cases">查看更多</NuxtLink>
         </div>
       </div>
     </section>
@@ -508,35 +355,6 @@ useSeoMeta({
       </div>
     </section>
 
-    <section class="home-band">
-      <div class="home-band__inner">
-        <div class="home-section-head">
-          <div>
-            <div class="section-kicker">CASES</div>
-            <h2 class="home-section-title">成功案例</h2>
-          </div>
-          <NuxtLink class="home-text-link" to="/cases">查看更多</NuxtLink>
-        </div>
-        <div class="case-preview-grid">
-          <article v-for="item in homeCases" :key="item.slug" class="case-preview-card">
-            <div class="case-preview-card__meta">{{ resolveCaseCategoryLabel(item) }}</div>
-            <h3>
-              <NuxtLink :to="`/cases/${item.slug}`">{{ item.title }}</NuxtLink>
-            </h3>
-            <p>{{ item.summary || "暂无案例摘要" }}</p>
-            <div class="case-preview-card__footer">
-              <span>{{ item.partner_name || "合作方待维护" }}</span>
-              <span>{{ item.stage || "阶段待维护" }}</span>
-            </div>
-          </article>
-          <article v-if="!homeCases.length" class="case-preview-card">
-            <div class="case-preview-card__meta">CASE</div>
-            <h3>暂无成功案例</h3>
-            <p>后台发布案例后将自动展示在首页。</p>
-          </article>
-        </div>
-      </div>
-    </section>
   </div>
 </template>
 
@@ -842,6 +660,14 @@ useSeoMeta({
   font-weight: 800;
 }
 
+.news-subhead {
+  margin: 0;
+  padding-bottom: 8px;
+  color: #5a6478;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .news-grid {
   display: grid;
   grid-template-columns: minmax(300px, 1fr) minmax(320px, 1fr);
@@ -850,6 +676,8 @@ useSeoMeta({
 
 .featured-card {
   position: relative;
+  display: flex;
+  flex-direction: column;
   min-height: 232px;
   overflow: hidden;
   background:
@@ -888,6 +716,8 @@ useSeoMeta({
 .featured-slide {
   position: absolute;
   inset: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .featured-fade-enter-active,
@@ -906,21 +736,26 @@ useSeoMeta({
 }
 
 .featured-cover {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #eef3fa;
 }
 
 .featured-cover img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
-  opacity: 0.84;
+  opacity: 1;
 }
 
 .featured-card__fallback {
-  position: absolute;
-  inset: 0;
+  flex: 1 1 auto;
+  min-height: 0;
   background: linear-gradient(160deg, rgba(12, 66, 161, 0.95), rgba(16, 87, 194, 0.8));
 }
 
@@ -969,18 +804,16 @@ useSeoMeta({
 }
 
 .featured-caption-wrap {
-  position: absolute;
+  position: relative;
   z-index: 4;
-  left: 0;
-  right: 0;
-  bottom: 8px;
-  padding: 0 15px;
+  flex: 0 0 auto;
+  padding: 12px 15px 14px;
   color: #fff;
+  background: linear-gradient(180deg, #0c3a93, #082a6e);
 }
 
 .featured-title {
-  position: relative;
-  top: 0;
+  position: static;
 }
 
 .featured-subtitle {
@@ -1036,7 +869,8 @@ useSeoMeta({
   position: absolute;
   z-index: 5;
   left: 50%;
-  bottom: 17px;
+  top: 12px;
+  bottom: auto;
   display: flex;
   gap: 11px;
   transform: translateX(-50%);
@@ -1546,7 +1380,8 @@ useSeoMeta({
   }
 
   .featured-dots {
-    bottom: 29px;
+    top: 14px;
+    bottom: auto;
     gap: 17px;
   }
 

@@ -26,7 +26,7 @@ const { data, pending, error } = await useAsyncData(
 
 useSeoMeta({
   title: () => `新闻动态 | ${settings.value?.site_profile?.site_name || "门户网站"}`,
-  description: "浏览研究院新闻、通知公告和行业资讯。",
+  description: "浏览研究院院内动态、活动与沙龙、科普教育和媒体聚焦。",
 });
 
 const selectCategory = async (slug = "") => {
@@ -53,7 +53,7 @@ const sidebarItems = computed(() => [
   <NuxtLayout
     name="inner"
     title="新闻动态"
-    subtitle="研究院新闻、通知公告与行业资讯统一发布入口"
+    subtitle="院内动态、活动与沙龙、科普教育与媒体聚焦统一发布入口"
     :breadcrumb="[{ label: '新闻动态' }]"
     sidebar-title="新闻分类"
     :sidebar-items="sidebarItems"
