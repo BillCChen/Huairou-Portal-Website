@@ -9,8 +9,8 @@ const router = useRouter();
 const route = useRoute();
 const auth = useAuthStore();
 const form = reactive({
-  username: "admin",
-  password: "ChangeMe123!",
+  username: "",
+  password: "",
 });
 const expiredMessage = computed(() => (route.query.reason === "expired" ? "登录已过期，请重新登录。" : ""));
 
@@ -30,7 +30,7 @@ const submit = async () => {
   <div style="min-height: 100vh; display: grid; place-items: center; padding: 32px;">
     <div class="content-card" style="width: min(460px, 100%); padding: 36px;">
       <div style="font-size: 28px; font-weight: 700;">门户网站管理后台</div>
-      <div style="margin-top: 8px; color: #64748b;">默认管理员账号已由后端初始化，可直接用于本地演示。</div>
+      <div style="margin-top: 8px; color: #64748b;">请使用管理员账号登录。</div>
       <el-alert
         v-if="expiredMessage"
         :title="expiredMessage"
