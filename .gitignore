@@ -49,3 +49,8 @@ secret-scan-results/
 
 # Local Claude settings
 .claude/settings.local.json
+
+# Local design prototypes and scratch
+preview-search-demo*/
+scratch/
+*-scratch/
